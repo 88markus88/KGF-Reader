@@ -110,24 +110,22 @@
   int mqttHandlerTimerHandleSlow=1;
 #endif
 
-// for wifi
+// credentials strings for wifi
 char ssid[50];
 char pass[50];
-// Wifi credentials für frankfurt
- 
 
-// credentials for mqtt
+// credentials and device strings for mqtt
 #ifdef isMQTT
-  char mqttDefaultServer[]    = "192.168.178.64";
-  char mqttDefaultUser[]      = "markus";
-  char mqttDefaultPaSSWORD[]  = "tirila1";
-
   char mqttActualServer[50];
   char mqttActualUser[50];
   char mqttActualPaSSWORD[50];
+
+  // MQTT topic string for battery monitor data is "esp32/mqttDeviceString/mqttSensorKGF110ID/.."
+  static char mqttSensorKGF110ID[] = "BTG002";
+  static char mqttDeviceString[]   = "KG-F110";
 #endif
 
-#define WDT_TIMEOUT_SECONDS 55  // 40 seconds watchdog timeout. Not too short, or the chip is dead!
+#define WDT_TIMEOUT_SECONDS 55  // 55 seconds watchdog timeout. Not too short, or the chip is dead!
 
 //Message Severities
 #define msgDefault  0
@@ -169,7 +167,6 @@ char pass[50];
 #define veChecksumMeasured    311
 #define veChecksumSetdata     312
 
-#define mqttSensorKGF110ID    "BTG002"
 #define mqttKGF110Voltage     "Voltage_V"
 #define mqttKGF110Current     "Current_A"
 #define mqttKGF110RemCapa     "RemainingCapacity_Ah"

@@ -14,12 +14,11 @@ To ensure that RSE remains HIGH for the duration of the sending, Serial.flush() 
   #define minDiffDS18B20      0.05 // min data difference from previous value to start sending info
 
 #define isMQTT    // include mqtt functionality
-#define isMQTTLog   // logging to MQTT, topic esp/mqttRoomString/log
+#define isMQTTLog   // logging to MQTT, topic esp/mqttDeviceString/log
 
 #define isVEDIRECT // ve.direct emulation on Serial1
 
 #define logSerial // logging to serial
-static char mqttRoomString[] = "KG-F110";
 
 #ifndef _BATTERYMONITORH_
   #include "JuncTek_BatteryMonitor.h"
@@ -183,7 +182,7 @@ void logOut(char* printstring, unsigned int MsgID, unsigned int MsgSeverity)
 
     #ifdef isMQTTLog
       char topicStr[200];
-      sprintf(topicStr,"esp32/%s/log/%d/%d",mqttRoomString, MsgID, MsgSeverity);
+      sprintf(topicStr,"esp32/%s/log/%d/%d",mqttDeviceString, MsgID, MsgSeverity);
       strcpy(outstring, timestring);
       strcat(outstring, printstring); 
 
@@ -658,7 +657,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         // insert here if large temp jump: send last_temperature again to avoid unrealistical curve form
         if(!isEqual(temp,last_DSTemp[sNo],minDiffDS18B20*10) && (last_DSTemp[sNo] > -110)) // if jump larger than 10 x minimum recognized temp difference
         {
-          sprintf(topicStr,"esp32/%s/%s/%s%d",mqttRoomString, mqttSensorDS18B20, mqttDS18B20Temperature, sNo+1);
+          sprintf(topicStr,"esp32/%s/%s/%s%d",mqttDeviceString, mqttSensorDS18B20, mqttDS18B20Temperature, sNo+1);
           printf(payloadStr,"%3.2f",last_DSTemp[sNo]);
           // caller! mqttSendItemCounter++;
           sprintf(printstring,"Strings to MQTT: [%s] [%s]\n", topicStr, payloadStr);
@@ -678,7 +677,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         sum_MQTT_calDS18B20Temperature[sNo] = 0;
         n_MQTT_calDS18B20Temperature[sNo] = 0;
 
-        sprintf(topicStr,"esp32/%s/%s/%s%d",mqttRoomString, mqttSensorDS18B20, mqttDS18B20Temperature,sNo+1);
+        sprintf(topicStr,"esp32/%s/%s/%s%d",mqttDeviceString, mqttSensorDS18B20, mqttDS18B20Temperature,sNo+1);
         sprintf(payloadStr,"%3.2f",temp);
         last_TimeDSSent[sNo] = time_sec; 
         // caller! mqttSendItemCounter++;
@@ -715,10 +714,10 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
       logOut(printstring, msgMQTTConnect, msgInfo);
 
       // Attempt to connect
-      if (mqttClient.connect(mqttRoomString, mqttDefaultUser, mqttDefaultPaSSWORD)) {
-        sprintf(topic1,"esp/%s",mqttRoomString);
+      if (mqttClient.connect(mqttDeviceString, mqttDefaultUser, mqttDefaultPaSSWORD)) {
+        sprintf(topic1,"esp/%s",mqttDeviceString);
         // sprintf(topic1,"esp32/KombiExt");
-        sprintf(topic2,"esp/cmnd/%s",mqttRoomString);
+        sprintf(topic2,"esp/cmnd/%s",mqttDeviceString);
         sprintf(printstring, "MQTT connected, subscribed: %s %s\n",topic1, topic2);
         logOut(printstring, msgMQTTSubscribe, msgInfo);
         
@@ -761,7 +760,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     String messageTemp;
     char myTopic [50];
     
-    sprintf(myTopic,"esp32/%s",mqttRoomString);
+    sprintf(myTopic,"esp32/%s",mqttDeviceString);
     //sprintf(myTopic,"esp32/RedBoxYeBtn/output");
 
     for (int i = 0; i < length; i++) {
@@ -775,7 +774,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     // if (String(topic) == "esp32/output") 
     if(strstr(topic,myTopic))  
     {
-      sprintf(printstring,"action: esp32 %s receivedMQTT %s",mqttRoomString, message);
+      sprintf(printstring,"action: esp32 %s receivedMQTT %s",mqttDeviceString, message);
       logOut(printstring, msgMQTTReceive, msgInfo);
     }
   } // mqttCallbackFunction
@@ -839,57 +838,57 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     if (kgf.DataValid && mqttClient.connected()) 
     {
       //mqttClient.loop();
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110Voltage);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110Voltage);
       sprintf(payloadStr,"%3.2f",kgf.Voltage);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);     
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110Current);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110Current);
       sprintf(payloadStr,"%3.2f",kgf.Current);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);  
       
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110Power);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110Power);
       sprintf(payloadStr,"%3.2f",kgf.Power);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110RemCapa);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110RemCapa);
       sprintf(payloadStr,"%4.3f",kgf.RemCapa);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
  
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110Temp);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110Temp);
       sprintf(payloadStr,"%d",kgf.Temp);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110CumulAhOut);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110CumulAhOut);
       sprintf(payloadStr,"%4.3f",kgf.CumulAhOut);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110Uptime);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110Uptime);
       sprintf(payloadStr,"%d",kgf.Uptime);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110UptimeStr);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110UptimeStr);
       sprintf(payloadStr,"%s",kgf.UptimeString);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
       
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110LifeLeft);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110LifeLeft);
       sprintf(payloadStr,"%d",kgf.LifeLeft);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110LifeLeftStr);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110LifeLeftStr);
       sprintf(payloadStr,"%s",kgf.LifeLeftString);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110EnergyIn);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110EnergyIn);
       sprintf(payloadStr,"%4.3f",kgf.EnergyIn);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
@@ -900,7 +899,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         int soc = int(0.5 + 1000 * kgf.RemCapa / kgf.SetCapa);
         if(soc >= 0 && soc <= 1000)
         {
-          sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110SOC);
+          sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110SOC);
           sprintf(payloadStr,"%4d",soc);
           mqttSendItemCounter++;
           mqttSend(topicStr, payloadStr); 
@@ -909,19 +908,19 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         int CE = int(0.5 + 1000 * (kgf.SetCapa - kgf.RemCapa));
         if(CE > 0 && CE < 1000000)
         {
-          sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110CE);
+          sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110CE);
           sprintf(payloadStr,"%d",CE);
           mqttSendItemCounter++;
           mqttSend(topicStr, payloadStr); 
         }  
       }
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, "MeasValSentChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "MeasValSentChecksum");
       sprintf(payloadStr,"%d",bm1.getMeasuredValuesChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, "MeasValTstChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "MeasValTstChecksum");
       sprintf(payloadStr,"%d",bm1.getMeasuredValuesTstChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
@@ -975,87 +974,87 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     {
       //mqttClient.loop();
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110SetCapa);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110SetCapa);
       sprintf(payloadStr,"%3.2f",kgf.SetCapa);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110ProtectionTemp);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110ProtectionTemp);
       sprintf(payloadStr,"%d",kgf.ProtectionTemp);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110ProtectionRecoveryTime);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110ProtectionRecoveryTime);
       sprintf(payloadStr,"%d",kgf.ProtectionRecoveryTime);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110ProtectionDelayTime);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110ProtectionDelayTime);
       sprintf(payloadStr,"%d",kgf.ProtectionDelayTime);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
       /*
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110PresetCapacity);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110PresetCapacity);
       sprintf(payloadStr,"%d",kgf.PresetCapacity);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
       */
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110VoltageCalValue);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110VoltageCalValue);
       sprintf(payloadStr,"%d",kgf.VoltageCalValue);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110CurrentCalValue);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110CurrentCalValue);
       sprintf(payloadStr,"%d",kgf.CurrentCalValue);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110TempCalValue);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110TempCalValue);
       sprintf(payloadStr,"%d",kgf.TempCalValue);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);      
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110VoltageScale);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110VoltageScale);
       sprintf(payloadStr,"%d",kgf.VoltageScale);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110CurrentScale);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110CurrentScale);
       sprintf(payloadStr,"%d",kgf.CurrentScale);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110RelayType);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110RelayType);
       sprintf(payloadStr,"%d",kgf.RelayType);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110OVPVoltage);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110OVPVoltage);
       sprintf(payloadStr,"%3.2f",kgf.OVPVoltage);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110UVPVoltage);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110UVPVoltage);
       sprintf(payloadStr,"%3.2f",kgf.UVPVoltage);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110OCPForwardCurrent);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110OCPForwardCurrent);
       sprintf(payloadStr,"%3.2f",kgf.OCPForwardCurrent);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, mqttKGF110OCPReverseCurrent);
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110OCPReverseCurrent);
       sprintf(payloadStr,"%3.2f",kgf.OCPReverseCurrent);
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);       
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, "SetValSentChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "SetValSentChecksum");
       sprintf(payloadStr,"%d",bm1.getSetValuesChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttRoomString, mqttSensorKGF110ID, "SetValTstChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "SetValTstChecksum");
       sprintf(payloadStr,"%d",bm1.getSetValuesTstChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
@@ -1572,7 +1571,6 @@ void setup()
     // set MQTT server and MQTT callback function
     strcpy(mqttActualServer, mqttDefaultServer);
     mqttClient.setServer(mqttActualServer, 1883);
-    //mqttClient.setServer("192.168.178.64", 1883);
     mqttClient.setCallback(mqttCallbackFunction);
     mqttClient.setKeepAlive(120); // keep the client alive for 120 sec if no action occurs
     mqttClient.setBufferSize(1024); // increase buffer size from standard 1024
