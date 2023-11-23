@@ -43,41 +43,44 @@ results in a MQTT base string of:
 ```
 The following topics are available:<br>
 Measurement values - updated every 2 seconds<br>
-- Voltage_V:  Voltage [V]
-- Current_A: Current [A]
-- Power_W: Power [W]
-- RemainingCapacity_Ah: Remaining battery capacity in [Ah]
-- SetCapacity_Ah: Total (Set) battery capacity [Ah]
-- Temperature_C: Temperature measured by KGH-110 battery sensor [°C]
-- CumulativeAhOut_Ah: Sum of Ampere hours discharged [Ah]
-- Uptime_sec: uptime of the battery monitor [sed]
-- Uptime_Str: uptime of the battery monitor as string  [day, hour:min:sec]
-- BatteryLifeLeft_min: remaining time until battery is full or empty [min]
-- BatteryLifeLeft_Str: remaining time until battery is full or empty as string [day, hour:min:sec]
-- EnergyIn_Wh: Energy charged into the battery [Watt hours]
-- ProtectionTemp_C: Protection Temperature: relay is switched if this temperature is exceeded
-- SOC: State of charge [‰]
-- CE: Charge exhausted [mAh]
-- MeasValSentChecksum: Checksum of the "measured values" data block as sent by KGH-110
-- MeasValTstChecksum: Checksum of the "measured values" data block as calculated from the actual data
-
+```
+Voltage_V:            Voltage [V]
+Current_A:            Current [A]
+Power_W:              Power [W]
+RemainingCapacity_Ah: Remaining battery capacity in [Ah]
+SetCapacity_Ah:       Total (Set) battery capacity [Ah]
+Temperature_C:        Temperature measured by KGH-110 battery sensor [°C]
+CumulativeAhOut_Ah:   Sum of Ampere hours discharged [Ah]
+Uptime_sec:           Uptime of the battery monitor [sed]
+Uptime_Str:           Uptime of the battery monitor as string  [day, hour:min:sec]
+BatteryLifeLeft_min:  Remaining time until battery is full or empty [min]
+BatteryLifeLeft_Str:  Remaining time until battery is full or empty as string [day, hour:min:sec]
+EnergyIn_Wh:          Energy charged into the battery [Watt hours]
+ProtectionTemp_C:     Protection Temperature: relay is switched if this temperature is exceeded
+SOC:                  State of charge [‰]
+CE:                   Charge exhausted [mAh]
+MeasValSentChecksum:  Checksum of the "measured values" data block as sent by KGH-110
+MeasValTstChecksum:   Checksum of the "measured values" data block as calculated from the actual data
+```
 Set values - updated every 30 seconds
-- SetCapacity_Ah: Total capacity of the battery, set by user [Ah]
-- ProtectionTemp_C
-- ProtectionRecoveryTime_s
-- ProtectionDelayTime_s
-- VoltageCalValue_V
-- CurrentCalValue_A
-- TempCalValue_C
-- VoltageScale_V
-- CurrentScale_A
-- RelayType
-- OVPVoltage_V
-- UVPVoltage_V
-- OCPForwardCurrent_A
-- OCPReverseCurrent_A
-- SetValSentChecksum: Checksum of the "set values" data block as sent by KGH-110
-- SetValTstChecksum: Checksum of the "set values" data block as calculated from the actual data
+```
+SetCapacity_Ah:    Total capacity of the battery, set by user [Ah]
+ProtectionTemp_C
+ProtectionRecoveryTime_s
+ProtectionDelayTime_s
+VoltageCalValue_V
+CurrentCalValue_A
+TempCalValue_C
+VoltageScale_V
+CurrentScale_A
+RelayType
+OVPVoltage_V
+UVPVoltage_V
+OCPForwardCurrent_A
+OCPReverseCurrent_A
+SetValSentChecksum: Checksum of the "set values" data block as sent by KGH-110
+SetValTstChecksum:  Checksum of the "set values" data block as calculated from the actual data
+```
 
 ### MQTT Logging
 If "isMQTTLog" is defined, logging to MQTT is enabled. Should be disabled for productive use
