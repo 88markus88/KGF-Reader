@@ -9,66 +9,75 @@ Unfortunatly openDTU-onBattery does not (yet) include an interface to provide th
 
 KGF-Reader does just this: it collects data from a JuncTek KGF-110 battery monitor via RS-485 interface and sends them out to a serial port in ve.direct format. These data are accepted by openDTU-onBattery as Victron SmartShunt data
 
+## Hardware
+The software runs on an Expressiv ESP32. It has been tested on a DevKitC by AzDelivery.
+RS-485 interface used is a Waveshare RS485 Board, using 3.3V logic: https://www.waveshare.com/rs485-board-3.3v.htm
+
 ## MQTT
 KGH-Reader also sends the battery monitor data to a MQTT server.
 
 ### Credentials
-Wifi credentials and MQTT server credentials have to be provided in "credentials.h". Only a template for this file is included in this repository, you will have to fill in your own information before compiling, and rename the file to "credentials.h":
+Wifi credentials and MQTT server credentials have to be provided in <i>"credentials.h"</i>. Only a template for this file is included in this repository, you will have to fill in your own information before compiling, and rename the file to <i>"credentials.h"</i>:<br>
+```
 // Wifi credentials
 char default_ssid[] = "My-Wifi";
 char default_pass[] = "my-password";
- 
+
 // credentials for MQTT server
 char mqttDefaultServer[]    = "192.168.178.100";
 char mqttDefaultUser[]      = "my-username";
 char mqttDefaultPaSSWORD[]  = "my-password";
+```
 
 ### MQTT topics
-The base topic is "esp32/<mqttDeviceString>/<mqttSensorKGF110ID>/.."
-mqttDeviceString and mqttSensorKGF110ID are static and set in "KG-F_Reader.h"
+The base topic is <i><b>esp32/< mqttDeviceString >/< mqttSensorKGF110ID >/.. </b></i><br>
+mqttDeviceString and mqttSensorKGF110ID are static and set in <i>"KG-F_Reader.h"</i><br><br>
 Example:
+```
   static char mqttSensorKGF110ID[] = "BTG002";
   static char mqttDeviceString[]   = "KG-F110";
+```
 results in a MQTT base string of:
+```
   esp32/KG-F110/BTG002/
-
-The following topics are available:
-Measurement values - updated every 2 seconds
- "Voltage_V"
-"Current_A"
-"Power_W"
-"RemainingCapacity_Ah"
-"SetCapacity_Ah"
-"Temperature_C"
-"CumulativeAhOut_Ah"
-"Uptime_sec"
-"Uptime_Str"
-"BatteryLifeLeft_min"
-"BatteryLifeLeft_Str"
-"EnergyIn_Wh"
-"ProtectionTemp_C"
-"SOC"
-"CE"
-MeasValSentChecksum
-MeasValTstChecksum
+```
+The following topics are available:<br>
+Measurement values - updated every 2 seconds<br>
+- Voltage_V:  Voltage [V]
+- Current_A: Current [A]
+- Power_W: Power [W]
+- RemainingCapacity_Ah: Remaining battery capacity in [Ah]
+- SetCapacity_Ah: Total (Set) battery capacity [Ah]
+- Temperature_C: Temperature measured by KGH-110 battery sensor [°C]
+- CumulativeAhOut_Ah: Sum of Ampere hours discharged [Ah]
+- Uptime_sec: uptime of the battery monitor [sed]
+- Uptime_Str: uptime of the battery monitor as string  [day, hour:min:sec]
+- BatteryLifeLeft_min: remaining time until battery is full or empty [min]
+- BatteryLifeLeft_Str: remaining time until battery is full or empty as string [day, hour:min:sec]
+- EnergyIn_Wh: Energy charged into the battery [Watt hours]
+- ProtectionTemp_C: Protection Temperature: relay is switched if this temperature is exceeded
+- SOC: State of charge [‰]
+- CE: Charge exhausted [mAh]
+- MeasValSentChecksum: Checksum of the "measured values" data block as sent by KGH-110
+- MeasValTstChecksum: Checksum of the "measured values" data block as calculated from the actual data
 
 Set values - updated every 30 seconds
-SetCapacity_Ah
-ProtectionTemp_C
-"ProtectionRecoveryTime_s"
-"ProtectionDelayTime_s"
-"VoltageCalValue_V"
-"CurrentCalValue_A"
-"TempCalValue_C"
-"VoltageScale_V"
-"CurrentScale_A"
-"RelayType"
-"OVPVoltage_V"
-"UVPVoltage_V"
-"OCPForwardCurrent_A"
-"OCPReverseCurrent_A"
-SetValSentChecksum
-SetValTstChecksum
+- SetCapacity_Ah: Total capacity of the battery, set by user [Ah]
+- ProtectionTemp_C
+- ProtectionRecoveryTime_s
+- ProtectionDelayTime_s
+- VoltageCalValue_V
+- CurrentCalValue_A
+- TempCalValue_C
+- VoltageScale_V
+- CurrentScale_A
+- RelayType
+- OVPVoltage_V
+- UVPVoltage_V
+- OCPForwardCurrent_A
+- OCPReverseCurrent_A
+- SetValSentChecksum: Checksum of the "set values" data block as sent by KGH-110
+- SetValTstChecksum: Checksum of the "set values" data block as calculated from the actual data
 
 ### MQTT Logging
 If "isMQTTLog" is defined, logging to MQTT is enabled. Should be disabled for productive use
