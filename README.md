@@ -13,6 +13,8 @@ KGF-Reader does just this: it collects data from a JuncTek KGF-110 battery monit
 The software runs on an Expressiv ESP32. It has been tested on a DevKitC by AzDelivery.
 RS-485 interface used is a Waveshare RS485 Board, using 3.3V logic: https://www.waveshare.com/rs485-board-3.3v.htm
 
+[Schematic](https://github.com/88markus88/KGf-Reader/blob/main/Pictures/KGf-Reader_Steckplatine.png)
+
 ## MQTT
 KGH-Reader also sends the battery monitor data to a MQTT server.
 
