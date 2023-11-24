@@ -1,4 +1,4 @@
-# KGF-Reader
+# KGF-Reader 
 MQTT and ve.direct Bridge for JuncTek KGF-110 (and compatible) battery monitor, based on ESP32. Project is built using Platformio and Arduino framework.
 
 I had started to use openDTU-onBattery <br>
