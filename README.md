@@ -105,3 +105,6 @@ I have expanded on his library a bit:
 - Adapt to PlatformIO
 - Make it compatible to ESP32 hardware serial
 - added code to ensure that the RSE pin of a SP3485 based board (e.g. Waveshare RS485 Board (3.3V) ) is used
+
+For timer functions the SIMPLETIMER library is used. See http://playground.arduino.cc/Code/SimpleTimer
+
