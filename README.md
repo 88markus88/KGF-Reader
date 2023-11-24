@@ -15,6 +15,8 @@ RS-485 interface used is a Waveshare RS485 Board, using 3.3V logic: https://www.
 
 [Schematic](https://github.com/88markus88/KGf-Reader/blob/main/Pictures/KGf-Reader_Steckplatine.png)
 
+https://github.com/88markus88/KGf-Reader/blob/main/Pictures/KGf-Reader_Steckplatine.png
+
 ## MQTT
 KGH-Reader also sends the battery monitor data to a MQTT server.
 
