@@ -26,7 +26,8 @@ The data are sent according to the Victron ve-Direct manual, and in the same for
 
 The Victron SmartShunt sends the data in text format in two blocks, here an example as logged by openDTU-onBattery:
 Block 1<br>
-<i>20:03:39.756 > [Victron SmartShunt] Text Event PID: Value: 0XA389 <br>
+```
+20:03:39.756 > [Victron SmartShunt] Text Event PID: Value: 0XA389 <br>
 20:03:39.766 > [Victron SmartShunt] Text Event V: Value: 50998 <br>
 20:03:39.774 > [Victron SmartShunt] Text Event I: Value: -8990 <br>
 20:03:39.782 > [Victron SmartShunt] Text Event P: Value: -458 <br>
@@ -37,21 +38,24 @@ Block 1<br>
 20:03:39.826 > [Victron SmartShunt] Text Event AR: Value: 0 <br>
 20:03:39.836 > [Victron SmartShunt] Text Event BMV: Value: SMARTSHUNT 500A/50MV <br>
 20:03:39.845 > [Victron SmartShunt] Text Event FW: Value: 0414 <br>
-20:03:39.854 > [Victron SmartShunt] Text Event MON: Value: 0 </i><br>
+20:03:39.854 > [Victron SmartShunt] Text Event MON: Value: 0 <br>
+```
 Binary format:<br>
-<i>20:03:39.877 > [VE.Direct] serial input (137 Bytes): <br>
-20:03:39.884 > [VE.Direct] 0d 0a 50 49 44 09 30 78 41 33 38 39 0d 0a 56 09  <CR><LF> P I D 	 0 x A 3 8 9  <CR><LF> V <br>
-20:03:39.892 > [VE.Direct] 35 30 39 39 38 0d 0a 49 09 2d 38 39 39 30 0d 0a  5 0 9 9 8  <CR><LF> I  - 8 9 9 0 <CR><LF> <br>
-20:03:39.901 > [VE.Direct] 50 09 2d 34 35 38 0d 0a 43 45 09 2d 37 30 36 35  P  - 4 5 8 C E 	 - 7 0 6 5 <br>
-20:03:39.909 > [VE.Direct] 38 0d 0a 53 4f 43 09 32 35 36 0d 0a 54 54 47 09  8  S O C 	 2 5 6  T T G  <br>
-20:03:39.917 > [VE.Direct] 33 31 0d 0a 41 6c 61 72 6d 09 4f 46 46 0d 0a 41  3 1  A l a r m 	 O F F  A<br>
-20:03:39.927 > [VE.Direct] 52 09 30 0d 0a 42 4d 56 09 53 6d 61 72 74 53 68  R 	 0 B M V 	 S m a r t S h<br>
-20:03:39.936 > [VE.Direct] 75 6e 74 20 35 30 30 41 2f 35 30 6d 56 0d 0a 46  u n t   5 0 0 A / 5 0 m V  F<br>
-20:03:39.944 > [VE.Direct] 57 09 30 34 31 34 0d 0a 4d 4f 4e 09 30 0d 0a 43  W 	 0 4 1 4  M O N 	 0  C<br>
-20:03:39.969 > [VE.Direct] 68 65 63 6b 73 75 6d 09 06</i>                   h e c k s u m 	 <br>   
-<br>
+```
+20:03:39.877 > [VE.Direct] serial input (137 Bytes): <br>
+20:03:39.884 > [VE.Direct] 0d 0a 50 49 44 09 30 78 41 33 38 39 0d 0a 56 09  <CR><LF>PID<t>0xA389<CR><LF>V<t><br>
+20:03:39.892 > [VE.Direct] 35 30 39 39 38 0d 0a 49 09 2d 38 39 39 30 0d 0a  50998<CR><LF>I<t>-8990<CR><LF><br>
+20:03:39.901 > [VE.Direct] 50 09 2d 34 35 38 0d 0a 43 45 09 2d 37 30 36 35  P<t>-458<CR><LF>CE<t>-7065<br>
+20:03:39.909 > [VE.Direct] 38 0d 0a 53 4f 43 09 32 35 36 0d 0a 54 54 47 09  8<CR><LF>SOC<t>256<CR><LF>TTG<t><br>
+20:03:39.917 > [VE.Direct] 33 31 0d 0a 41 6c 61 72 6d 09 4f 46 46 0d 0a 41  31<CR><LF>Alarm<t>OFF<CR><LF>A<br>
+20:03:39.927 > [VE.Direct] 52 09 30 0d 0a 42 4d 56 09 53 6d 61 72 74 53 68  R<t>0<CR><LF>BMV SmartSh<br>
+20:03:39.936 > [VE.Direct] 75 6e 74 20 35 30 30 41 2f 35 30 6d 56 0d 0a 46  unt 500A/50mV<CR><LF>F<br>
+20:03:39.944 > [VE.Direct] 57 09 30 34 31 34 0d 0a 4d 4f 4e 09 30 0d 0a 43  W<t>0414<CR><LF>MON<t>0<CR><LF>C<br>
+20:03:39.969 > [VE.Direct] 68 65 63 6b 73 75 6d 09 06                       hecksum<t><0x06><br>
+```
 Block 2<br>
-<i>20:03:40.133 > [Victron SmartShunt] Text Event H1: Value: -81084 <br>
+```
+20:03:40.133 > [Victron SmartShunt] Text Event H1: Value: -81084 <br>
 20:03:40.142 > [Victron SmartShunt] Text Event H2: Value: -81084 <br>
 20:03:40.150 > [Victron SmartShunt] Text Event H3: Value: -47599 <br>
 20:03:40.157 > [Victron SmartShunt] Text Event H4: Value: 5 <br>
@@ -66,9 +70,11 @@ Block 2<br>
 20:03:40.299 > [Victron SmartShunt] Text Event H15: Value: 0 <br>
 20:03:40.311 > [Victron SmartShunt] Text Event H16: Value: 0 <br>
 20:03:40.319 > [Victron SmartShunt] Text Event H17: Value: 7420 <br>
-20:03:40.328 > [Victron SmartShunt] Text Event H18: Value: 7501</i><br>
+20:03:40.328 > [Victron SmartShunt] Text Event H18: Value: 7501<br>
+```
 Binary Format:<br>
-<i>20:03:40.351 > [VE.Direct] serial input (157 Bytes): <br>
+```
+20:03:40.351 > [VE.Direct] serial input (157 Bytes): <br>
 20:03:40.360 > [VE.Direct] 0d 0a 48 31 09 2d 38 31 30 38 34 0d 0a 48 32 09 <br>
 20:03:40.371 > [VE.Direct] 2d 38 31 30 38 34 0d 0a 48 33 09 2d 34 37 35 39 <br>
 20:03:40.377 > [VE.Direct] 39 0d 0a 48 34 09 35 0d 0a 48 35 09 30 0d 0a 48 <br>
@@ -78,8 +84,8 @@ Binary Format:<br>
 20:03:40.408 > [VE.Direct] 32 0d 0a 48 31 31 09 30 0d 0a 48 31 32 09 30 0d <br>
 20:03:40.418 > [VE.Direct] 0a 48 31 35 09 30 0d 0a 48 31 36 09 30 0d 0a 48 <br>
 20:03:40.428 > [VE.Direct] 31 37 09 37 34 32 30 0d 0a 48 31 38 09 37 35 30 <br>
-20:03:40.437 > [VE.Direct] 31 0d 0a 43 68 65 63 6b 73 75 6d 09 de</i><br>
-
+20:03:40.437 > [VE.Direct] 31 0d 0a 43 68 65 63 6b 73 75 6d 09 de<br>
+```
 
 ## MQTT
 KGH-Reader also sends the battery monitor data to a MQTT server.
