@@ -73,7 +73,7 @@ BatteryMonitor bm1;
 
 // RS485 setup with ESP32       
 // SoftwareSerial SerialSW(RXSW, TXSW); // RX=26 , TX =27
-char printstring[400];  // for logging
+char printstring[500];  // for logging
 
 // constructor for class kgfData
 kgfData::kgfData():
@@ -136,7 +136,7 @@ void vedirectHandler();
 void logOut(char* printstring, unsigned int MsgID, unsigned int MsgSeverity)
   {
     char timestring[50]="";      
-    char outstring[430];
+    char outstring[550];
 
     if(strlen(printstring)<1) 
       strcpy(printstring,"invalid log string");
@@ -1298,6 +1298,7 @@ int createVEdirectMessage1(char* message)
   {
     int checksum;
     char hstring[50];
+    static int H7=10000000, H8=0; // to remember min and max voltages
 
     strcpy(message,""); // empty message
 
@@ -1327,8 +1328,8 @@ int createVEdirectMessage1(char* message)
       H4 = (int)(0.5 + kgf.CumulAhOut / kgf.SetCapa);
     else 
       H4 = 0;  
-    H4 = max(H4, 99999);
-    H4 = min(H4, 0);    
+    H4 = min(H4, 99999);
+    H4 = max(H4, 0);    
     sprintf(hstring,"\x0D\nH4\t%d",H4);
     strcat(message,hstring);  
 
@@ -1338,9 +1339,9 @@ int createVEdirectMessage1(char* message)
       H5 = (int)(0.5+ kgf.CumulAhOut / kgf.SetCapa);
     else 
       H5 = 0;  
-    H5 = max(H5, 99999);
-    H5 = min(H5, 0);  
-     sprintf(hstring,"\x0D\nH5\t%3.2f",H5);
+    H5 = min(H5, 99999);
+    H5 = max(H5, 0);  
+     sprintf(hstring,"\x0D\nH5\t%d",H5);
     strcat(message,hstring);    
 
     // H6: cumulative Amp hours Drawn in mAh
@@ -1348,13 +1349,17 @@ int createVEdirectMessage1(char* message)
     sprintf(hstring,"\x0D\nH6\t%d",H6);
     strcat(message,hstring);    
 
-    //fake H7: minimal battery voltage
-    int H7= 1000 * 20.0;
+    //fake H7: minimal battery voltage. this returns min voltage during present run of KGF-Reader
+    if(1000*kgf.Voltage < H7)
+      H7 = 1000*kgf.Voltage;
+    // int H7= 1000 * 20.0;
     sprintf(hstring,"\x0D\nH7\t%d",H7);
     strcat(message,hstring);
 
-    //fake H8: maximal battery voltage
-    int H8= 1000 * 27.0;
+    //fake H8: maxmal battery voltage. this returns max voltage during present run of KGF-Reader
+    if(1000*kgf.Voltage > H8)
+      H8 = 1000*kgf.Voltage;
+    //int H8= 1000 * 27.0;
     sprintf(hstring,"\x0D\nH8\t%d",H8);
     strcat(message,hstring);
 
@@ -1450,7 +1455,7 @@ int createVEdirectMessage1(char* message)
   ***************************************************/
   void vedirectHandler()
   {
-    char msg[300];
+    char msg[400];
     int ret;
     if(kgf.DataValid)
     {
