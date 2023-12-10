@@ -155,7 +155,7 @@ OCPReverseCurrent_A
 SetValSentChecksum: Checksum of the "set values" data block as sent by KGH-110
 SetValTstChecksum:  Checksum of the "set values" data block as calculated from the actual data
 ```
-DS19B20 Temperature data. Zero or upt to 3 temperature sensors are automatically detected and the temperatures in °C are sent to the MQTT server with the following topics:
+DS18B20 Temperature data. Zero or up to 3 temperature sensors are automatically detected and the temperatures in °C are sent to the MQTT server with the following topics:
 ```
 esp32/KG-F110/DS18B20/DSTemperature1
 esp32/KG-F110/DS18B20/DSTemperature2
