@@ -1,7 +1,8 @@
-# KGF-Reader
-MQTT and ve.direct Bridge for JuncTek KGF-110 (and compatible) battery monitor
+# KGF-Reader 
+MQTT and ve.direct Bridge for JuncTek KGF-110 (and compatible) battery monitor, based on ESP32. Project is built using Platformio and Arduino framework.
 
-I had started to use openDTU-onBattery https://github.com/helgeerbe/OpenDTU-OnBattery 
+I had started to use openDTU-onBattery <br>
+https://github.com/helgeerbe/OpenDTU-OnBattery <br>
 and wanted to use my JuncTek KGF-110 battery monitor to provide data to it, to enable better control 
 of the battery charging and discharging.
 
@@ -11,9 +12,13 @@ KGF-Reader does just this: it collects data from a JuncTek KGF-110 battery monit
 
 ## Hardware
 The software runs on an Expressiv ESP32. It has been tested on a DevKitC by AzDelivery.
-RS-485 interface used is a Waveshare RS485 Board, using 3.3V logic: https://www.waveshare.com/rs485-board-3.3v.htm
+RS-485 interface used is a Waveshare RS485 Board, using 3.3V logic: <br>https://www.waveshare.com/rs485-board-3.3v.htm <br>
+Up to 3 temperature sensors DS18B20 are also included. Additional sensors can simply be added in parallel to the one shown in the schematic.
 
-[Schematic](https://github.com/88markus88/KGf-Reader/blob/main/Pictures/KGf-Reader_Steckplatine.png)
+The schematic is simplified by just showing those pins of the <i>openDTU-onBattery</i> that should be used for connection to <i>KGF-Reader</i> 
+Since I could not find the correct R485 module as Fritzing file, the wires to the RS485 breakout are not shown in the right order. Also, the Waveshare breakout has only one RSE  (receive/send enable) pin, instead of the separate RE (Receive enable) and DE (Data enable) Pins shown here. For the Waveshare board there is only one wire {white], and one pin on the breakout board.
+
+![Schematic](https://github.com/88markus88/KGf-Reader/blob/main/Pictures/KGf-Reader_Steckplatine.png)
 
 ## MQTT
 KGH-Reader also sends the battery monitor data to a MQTT server.
@@ -83,7 +88,12 @@ OCPReverseCurrent_A
 SetValSentChecksum: Checksum of the "set values" data block as sent by KGH-110
 SetValTstChecksum:  Checksum of the "set values" data block as calculated from the actual data
 ```
-
+DS19B20 Temperature data. Zero or upt to 3 temperature sensors are automatically detected and the temperatures in °C are sent to the MQTT server with the following topics:
+```
+esp32/KG-F110/DS18B20/DSTemperature1
+esp32/KG-F110/DS18B20/DSTemperature2
+esp32/KG-F110/DS18B20/DSTemperature3
+```
 ### MQTT Logging
 If "isMQTTLog" is defined, logging to MQTT is enabled. Should be disabled for productive use
 #define isMQTTLog   // logging to MQTT, topic esp/mqttDeviceString/log
@@ -95,3 +105,6 @@ I have expanded on his library a bit:
 - Adapt to PlatformIO
 - Make it compatible to ESP32 hardware serial
 - added code to ensure that the RSE pin of a SP3485 based board (e.g. Waveshare RS485 Board (3.3V) ) is used
+
+For timer functions the SIMPLETIMER library is used. See http://playground.arduino.cc/Code/SimpleTimer
+
