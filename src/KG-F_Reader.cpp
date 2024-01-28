@@ -1027,7 +1027,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   void mqttHandlerQuick()
   {
     char payloadStr[100];
-    char topicStr[100];
+    char topicStr[150];
 
     static long mqttSendItemCounter = 0, mqttCallCounter = 0;
     int i;
@@ -1137,12 +1137,12 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         }  
       }
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "MeasValSentChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110MeasValSntChksum);
       sprintf(payloadStr,"%d",bm1.getMeasuredValuesChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "MeasValTstChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110MeasValTstChksum);
       sprintf(payloadStr,"%d",bm1.getMeasuredValuesTstChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
@@ -1271,12 +1271,12 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);       
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "SetValSentChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110SetValSntChksum);
       sprintf(payloadStr,"%d",bm1.getSetValuesChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
 
-      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, "SetValTstChecksum");
+      sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110SetValTstChksum);
       sprintf(payloadStr,"%d",bm1.getSetValuesTstChecksum());
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr);
@@ -1803,7 +1803,7 @@ void setup()
     mqttClient.setServer(mqttActualServer, 1883);
     mqttClient.setCallback(mqttCallbackFunction);
     mqttClient.setKeepAlive(120); // keep the client alive for 120 sec if no action occurs
-    mqttClient.setBufferSize(1024); // increase buffer size from standard 256 to 1024
+    mqttClient.setBufferSize(1024); // increase buffer size from standard 256 to 1024 Bytes
   #endif //isMQTT
 
   #ifdef isVEDIRECT
