@@ -8,10 +8,14 @@ Attention: when sending RSE needs to be set to HIGH for the duration of the asyn
 To ensure that RSE remains HIGH for the duration of the sending, Serial.flush() must be used after the serial.print
 **************************************************************/
 
+#define getNTPTIME       // get time from NTP server
+
 #define isOTA     // enable OTA Update functionality
 #define isOneDS18B20 // include DS18B20
   #define noDS18B20Sensors 3  // number of DS18B20 expected
   #define minDiffDS18B20      0.05 // min data difference from previous value to start sending info
+
+#define isSyncBattery // sync Battery function enabled
 
 #define isMQTT    // include mqtt functionality
 #define isMQTTLog   // logging to MQTT, topic esp/mqttDeviceString/log
@@ -26,6 +30,10 @@ To ensure that RSE remains HIGH for the duration of the sending, Serial.flush() 
 #ifndef  KG_F_READER_H
   #include "KG-F_Reader.h"
 #endif
+
+#ifndef time_h
+  #include "time.h"
+#endif  
 
 #ifndef HardwareSerial_h
   #include <HardwareSerial.h>
@@ -73,7 +81,8 @@ BatteryMonitor bm1;
 
 // RS485 setup with ESP32       
 // SoftwareSerial SerialSW(RXSW, TXSW); // RX=26 , TX =27
-char printstring[500];  // for logging
+#define maxPRINTSTRINGLEN 500
+char printstring[maxPRINTSTRINGLEN];  // for logging
 
 // constructor for class kgfData
 kgfData::kgfData():
@@ -103,11 +112,13 @@ long KGF110ProtectionTemp, KGF110ProtectionRecoveryTime, KGF110ProtectionDelayTi
 float KGF110OVPVoltage, KGF110UVPVoltage, KGF110OCPForwardCurrent, KGF110OCPReverseCurrent, KGF110OPPPower;
 */
 
-// function prototypes
+// local function prototypes
 String toStringIp(IPAddress ip);
 bool getKGF110Data();
 void restartDS18B20MeasurementFunction();
 void vedirectHandler();
+void batteryPercentHandler();
+void printLocalTime(char* printstring, int mode);
 
 
 /**************************************************!
@@ -136,10 +147,14 @@ void vedirectHandler();
 void logOut(char* printstring, unsigned int MsgID, unsigned int MsgSeverity)
   {
     char timestring[50]="";      
-    char outstring[550];
+    char outstring[maxPRINTSTRINGLEN + 50];
 
-    if(strlen(printstring)<1) 
+    if((strlen(printstring)<1) || (strlen(printstring)>maxPRINTSTRINGLEN))
+    {
       strcpy(printstring,"invalid log string");
+      MsgID = msgLogError;
+      MsgSeverity = msgErr;
+    }
 
     #ifdef isLEDHeartbeat
       heartbeatStatus = !heartbeatStatus;
@@ -190,7 +205,7 @@ void logOut(char* printstring, unsigned int MsgID, unsigned int MsgSeverity)
       //Serial.print(printstring);
       if(mqttClient.connected())
       //mqttClient.publish(topicStr, outstring); //payload: outstring
-        mqttClient.publish(topicStr, outstring, strlen(outstring)); //payload: outstring
+      mqttClient.publish(topicStr, outstring, strlen(outstring)); //payload: outstring
       //sprintf(printstring, "test logOut 2");  
       //Serial.print(printstring);
     #endif
@@ -303,6 +318,214 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     return(false);
   }  
 }  
+
+#ifdef getNTPTIME
+  /**************************************************!
+  @brief    get local system date/time and convert it to proper string format
+  @details  gets local time, and converts it to strings using "strftime"
+  @details  http://www.cplusplus.com/reference/ctime/strftime/
+  @param    timestring returned string with the date/time info
+  @param    mode  deterines format to be returned. 1: only print
+  @return   void
+  ***************************************************/
+  void printLocalTime(char* timestring, int mode)
+  {
+    char timeHour[3];
+    char timeMinute[3];
+    char timeSecond[3];
+    char timeWeekDay[10];
+    char timeDay[3];
+    char timeMonth[7];
+    char timeMonthShort[5];
+    char timeYear[5];
+    char timeYearShort[3];
+    char timeISODate[12];
+    char timeISOTime[10];
+
+
+    struct tm timeinfo;
+    if(!getLocalTime(&timeinfo)){
+      Serial.println(F("Failed to obtain time"));
+      strcpy(timestring,"<?time?>");
+      return;
+    }
+
+    strftime(timeHour,3, "%H", &timeinfo);  
+    strftime(timeMinute,3, "%M", &timeinfo);  
+    strftime(timeSecond,3, "%S", &timeinfo);  
+    strftime(timeWeekDay,10, "%A", &timeinfo);
+    strftime(timeDay,3, "%d", &timeinfo);  
+    strftime(timeMonth,4, "%b", &timeinfo);  
+    strftime(timeMonthShort,3, "%m", &timeinfo);  
+    strftime(timeYear,5, "%Y", &timeinfo);  
+    strftime(timeYearShort,5, "%y", &timeinfo);  
+    strftime(timeISODate,12, "%F", &timeinfo);  
+    strftime(timeISOTime,10, "%T", &timeinfo); 
+
+    // format modiefies for strftime()
+    // http://www.cplusplus.com/reference/ctime/strftime/ 
+    switch(mode)
+    {
+      // output time and date to timestring and / or serial port
+      case 1: 
+        Serial.println(&timeinfo,"%e.%m.%G - %H:%M:%S"); 
+        break;
+      case 2: 
+        sprintf(timestring,"%s.%s.%s - %s:%s:%s\n",
+          timeDay,timeMonth,timeYear,timeHour,timeMinute,timeSecond);
+        // Serial.print(timestring);
+      case 3: 
+        sprintf(timestring,"%s - %s\n", timeISODate, timeISOTime);
+        // Serial.print(timestring); 
+        break;
+      case 4: 
+        sprintf(timestring,"%s.%s.%s-%s:%s:%s ", 
+          timeDay,timeMonthShort,timeYearShort,timeHour,timeMinute,timeSecond);
+      case 5: 
+        // with daylight saving time indicator "timeinfo.tm_isdst"
+        // sprintf(timestring,"%d %s%s%s-%s:%s:%s ", timeinfo.tm_isdst,
+        //  timeDay,timeMonth,timeYearShort,timeHour,timeMinute,timeSecond);    
+        sprintf(timestring,"%s%s%s-%s:%s:%s ", 
+          timeDay,timeMonth,timeYearShort,timeHour,timeMinute,timeSecond);    
+        // Serial.print(timestring); 
+        break;  
+      case 6: 
+        sprintf(timestring,"%s:%s:%s ",timeHour,timeMinute,timeSecond);    
+        // Serial.print(timestring); 
+        break; 
+      case 7: 
+        sprintf(timestring,"%s%s%s-%s:%s:%s ", 
+          timeDay,timeMonth,timeYearShort,timeHour,timeMinute,timeSecond);    
+        // Serial.print(timestring); 
+        break;    
+      case 8: 
+        sprintf(timestring,"%s",timeISODate);    
+        // Serial.print(printstring); 
+        break; 
+        
+      default: Serial.println("Invalid time print mode");
+    }
+    
+    /*
+    Serial.print("Day of week: ");
+    Serial.println(&timeinfo, "%A");
+    Serial.print("Month: ");
+    Serial.println(&timeinfo, "%B");
+    Serial.print("Day of Month: ");
+    Serial.println(&timeinfo, "%d");
+    Serial.print("Year: ");
+    Serial.println(&timeinfo, "%Y");
+    Serial.print("Hour: ");
+    Serial.println(&timeinfo, "%H");
+    Serial.print("Hour (12 hour format): ");
+    Serial.println(&timeinfo, "%I");
+    Serial.print("Minute: ");
+    Serial.println(&timeinfo, "%M");
+    Serial.print("Second: ");
+    Serial.println(&timeinfo, "%S");
+
+    Serial.println("Time variables");
+    char timeHour[3];
+    strftime(timeHour,3, "%H", &timeinfo);
+    Serial.println(timeHour);
+    char timeWeekDay[10];
+    strftime(timeWeekDay,10, "%A", &timeinfo);
+    Serial.println(timeWeekDay);
+    Serial.println();
+    */
+  }
+
+  /**************************************************!
+  @brief    getNTPTime: start WLAN and get time from NTP server
+  @details  routine to get time from an network time server via NTP protocol. Set system time.
+  @details  https://randomnerdtutorials.com/esp32-date-time-ntp-client-server-arduino/
+  @param    none
+  @return   void
+  ***************************************************/
+ // Issue: incorrect setting of day when switching to daylight saving time
+ // See: https://github.com/espressif/arduino-esp32/issues/3797
+
+  void getNTPTime()
+  {
+    // char printstring2[80];
+    // int tryCount = 0;
+
+    Serial.print(F("Connecting to "));
+    Serial.println(ssid);
+
+    // new 22.11.21
+    if(WiFi.status() != WL_CONNECTED)
+      connectToWiFi(ssid, pass, 7);
+
+    esp_task_wdt_reset();   // keep watchdog happy
+
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      Serial.println(F("WiFi connected."));
+      esp_task_wdt_reset();   // keep watchdog happy  
+      
+      struct tm timeinfo;
+      // Init and get the time. try all 3 time servers in sequence, if first not successful
+      // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, ntpServer2, ntpServer3);
+      // works for one server:
+      // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
+      // improved for setting to the correct time zone directly
+      // https://github.com/espressif/arduino-esp32/issues/3797 
+      // https://remotemonitoringsystems.ca/time-zone-abbreviations.php
+      configTzTime( defaultTimezone, ntpServer); //sets TZ and starts NTP sync
+
+      if(getLocalTime(&timeinfo))
+      {
+        TimeIsInitialized = true;
+        sprintf(printstring,"Successfully obtained time from first server %s",ntpServer);
+        Serial.println(printstring);  
+      }  
+      else{  
+        sprintf(printstring,"Failed to obtain time from first server %s",ntpServer);  
+        Serial.println(printstring);   
+        // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer2);
+        configTzTime( defaultTimezone, ntpServer2); //sets TZ and starts NTP sync
+        if(getLocalTime(&timeinfo)){
+          TimeIsInitialized = true;
+          sprintf(printstring,"Successfully obtained time from 2nd server %s",ntpServer2);
+          Serial.println(printstring);  
+        }  
+        else{
+          sprintf(printstring,"Failed to obtain time from 2nd server %s",ntpServer2);  
+          Serial.println(printstring);  
+          // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer3);
+          configTzTime( defaultTimezone, ntpServer3); //sets TZ and starts NTP sync
+          if(getLocalTime(&timeinfo)){
+            sprintf(printstring,"Successfully obtained time from 3rd server %s",ntpServer3);
+            Serial.println(printstring);  
+            TimeIsInitialized = true;
+          } 
+          else{
+            sprintf(printstring,"Failed to obtain time from 3rd server %s",ntpServer3);  
+            Serial.println(printstring);  
+            TimeIsInitialized = false;  
+          }
+        }
+      }
+
+      if(TimeIsInitialized){
+        printLocalTime(printstring, 3);
+        logOut(printstring, msgTimeInitialized, msgInfo);
+      }  
+      //disconnect WiFi as it's no longer needed
+      //in EnvMonitor we do not disconnect
+      // WiFi.disconnect(true);
+      // WiFi.mode(WIFI_OFF);
+    }
+    else
+    {
+      Serial.println(F("WiFi NOT connected - time server connection not possible."));
+      TimeIsInitialized = false;
+    }  
+  }
+#endif
+
 
 #ifdef isOneDS18B20
 
@@ -630,9 +853,9 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
 
   void mqttSendDS18B20(int sNo)
   {
-    char payloadStr[50];
-    char topicStr[50];
-    char printstring2[180];
+    char payloadStr[100]; //50
+    char topicStr[100];   //50
+    char printstring2[250]; //180
     // DS18B20 data 
     double temp;
     double limit = -110.0;
@@ -642,7 +865,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
 
     time_sec = (float)millis()/1000;
 
-    sprintf(printstring,"DS18B20[%d] sum: %f n: %d \n",sNo, sum_MQTT_calDS18B20Temperature[sNo],n_MQTT_calDS18B20Temperature[sNo]);
+    sprintf(printstring,"DS18B20[%d] sum: %3.2f n: %d \n",sNo, sum_MQTT_calDS18B20Temperature[sNo],n_MQTT_calDS18B20Temperature[sNo]);
     logOut(printstring,msgMQTTSendDS10B20, msgInfo);
     if(n_MQTT_calDS18B20Temperature[sNo] > 0)
       temp = sum_MQTT_calDS18B20Temperature[sNo] / n_MQTT_calDS18B20Temperature[sNo];
@@ -658,7 +881,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         if(!isEqual(temp,last_DSTemp[sNo],minDiffDS18B20*10) && (last_DSTemp[sNo] > -110)) // if jump larger than 10 x minimum recognized temp difference
         {
           sprintf(topicStr,"esp32/%s/%s/%s%d",mqttDeviceString, mqttSensorDS18B20, mqttDS18B20Temperature, sNo+1);
-          printf(payloadStr,"%3.2f",last_DSTemp[sNo]);
+          sprintf(payloadStr,"%3.2f",last_DSTemp[sNo]);
           // caller! mqttSendItemCounter++;
           sprintf(printstring,"Strings to MQTT: [%s] [%s]\n", topicStr, payloadStr);
           logOut(printstring, msgMQTTSendDS10B20, msgInfo);
@@ -803,15 +1026,14 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   ***************************************************/
   void mqttHandlerQuick()
   {
-    char payloadStr[70];
-    char topicStr[70];
+    char payloadStr[100];
+    char topicStr[100];
 
     static long mqttSendItemCounter = 0, mqttCallCounter = 0;
     int i;
 
     mqttCallCounter++;      // counter for how often this function has been called
     mqttSendItemCounter = 0; // counter for the number of items to be sent during this call
-
 
     #ifdef isOneDS18B20
       // DS18B20 data 
@@ -943,8 +1165,8 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   ***************************************************/
   void mqttHandlerSlow()
   {
-    char payloadStr[70];
-    char topicStr[70];
+    char payloadStr[100];
+    char topicStr[100];
 
     static long mqttSendItemCounter = 0, mqttCallCounter = 0;
     int i;
@@ -1502,6 +1724,9 @@ void setup()
   // connect to wifi network
   bool connectPossible = connectToWiFi(default_ssid, default_pass, 7);
 
+  // get time
+
+
   pinMode(RSE, OUTPUT);  // set Output enable pin to output mode
   /* you can use any other serial port that your platform uses as long as it can handle 115200 baud
   /
@@ -1578,7 +1803,7 @@ void setup()
     mqttClient.setServer(mqttActualServer, 1883);
     mqttClient.setCallback(mqttCallbackFunction);
     mqttClient.setKeepAlive(120); // keep the client alive for 120 sec if no action occurs
-    mqttClient.setBufferSize(1024); // increase buffer size from standard 1024
+    mqttClient.setBufferSize(1024); // increase buffer size from standard 256 to 1024
   #endif //isMQTT
 
   #ifdef isVEDIRECT
@@ -1617,6 +1842,18 @@ void setup()
       &Task1,  /* Task handle. */
       1); /* Core where the task should run */
   #endif
+
+  #ifdef isSyncBattery
+    sprintf(printstring,"starting handler for synchBattery()\n");
+    logOut(printstring,msgStartup, msgInfo);    
+    syncBatteryHandle = syncBatteryHandlerTimer.setInterval(syncBatteryHandlerInterval, batteryPercentHandler);
+  #endif
+
+  #ifdef getNTPTIME
+    // get time from NTP server
+    // https://randomnerdtutorials.com/esp32-date-time-ntp-client-server-arduino/
+    getNTPTime();
+  #endif  
 }  // setup
 
 
@@ -1770,6 +2007,102 @@ bool getKGF110Data()
   return(true); // valid data
 }
 
+/**************************************************!
+    @brief    syncBatteryPercent()
+    @details  New 2024-01-28, out of loop()
+    @details  Checks battery capacity versus battery voltage. 
+    @details  Corrects if necessary according to table values
+    @return   none
+  ***************************************************/
+
+// calc. normalized voltage for multiple batteries
+float normalizedVoltage(float voltage)
+{
+  if(voltage < 15)    // voltage < 15 V: take unchanged
+    return(voltage);
+  if(voltage < 30)    // voltage < 30 V: 2 batteries, normalized is half value
+    return(voltage/2);  
+  if(voltage < 45)    // voltage < 45 V: 3 batteries, normalized is 1/3 value
+    return(voltage/3);
+  if(voltage < 60)
+    return(voltage/4);// voltage < 60 V: 3 batteries, normalized is 1/4 value   
+  return(-1); // error  
+}
+
+#define batterySubtractValue 2   // this is the % value that needs to be subtracted from percentage at midnight every day
+void subtractBatteryDailyConsumption()
+{
+  char ISODate[50];
+  static char lastISODate[50];
+  float RemCapaPercent;
+  int newPercentValue;
+  bool ret;
+
+  // get the time
+  #ifdef getNTPTIME
+   if (TimeIsInitialized == true) {
+       printLocalTime(printstring, 2);
+       printLocalTime(ISODate, 8);
+     }   
+   else
+    sprintf(printstring," Not available");  
+    logOut(printstring, msgTimeInfo, msgDS18B20Info);
+  #endif 
+
+  if(kgf.SetCapa > 0.01 && kgf.RemCapa > 0.01) // prevent div by zero
+    RemCapaPercent = 100*kgf.RemCapa / kgf.SetCapa;
+  else   
+    RemCapaPercent = 10;
+
+  if(!strstr(ISODate, lastISODate)) // date has changed
+  {
+    newPercentValue = (int)(RemCapaPercent - batterySubtractValue);
+    ret=bm1.setBatteryPercent(newPercentValue);
+    strcpy(lastISODate, ISODate);
+    sprintf(printstring,"Battery Percent charged set to: %d returned: %d (V: %3.1f RemC: %3.1f SetV %3.1f)", 
+      newPercentValue, ret, kgf.Voltage, kgf.RemCapa, kgf.SetCapa);
+    logOut(printstring, kgfSendDailyCorrectedPercent, msgInfo);
+  }
+
+}
+
+#define voltageThreshold    13.0
+#define capacityThresholdPercent   35
+#define correctCapacityPercent     30
+void syncBatteryPercent()
+{
+  bool ret;
+  float RemCapaPercent;
+
+  // check for need to synchronize battery charge percentage
+  if(kgf.SetCapa > 0.01 && kgf.RemCapa > 0.01) // prevent div by zero
+    RemCapaPercent = 100*kgf.RemCapa / kgf.SetCapa;
+  else   
+    RemCapaPercent = 1;
+  if((normalizedVoltage(kgf.Voltage) < voltageThreshold) && (RemCapaPercent > capacityThresholdPercent)){
+
+    ret = bm1.setBatteryPercent(correctCapacityPercent);
+    sprintf(printstring,"Battery Percent charged set to: %d returned: %d (V: %3.1f RemC: %3.1f SetV %3.1f)", 
+      correctCapacityPercent, ret, kgf.Voltage, kgf.RemCapa, kgf.SetCapa);
+    logOut(printstring, kgfSendCorrectedPercent, msgWarn);
+  }  
+  else{
+    sprintf(printstring,"Battery Percent not changed. (V: %3.1f C%% %3.1f). IP: %s", 
+      kgf.Voltage, kgf.RemCapa, toStringIp(WiFi.localIP()).c_str());
+    logOut(printstring, kgfSendCorrectedPercent, msgInfo);  
+  }
+}
+
+void batteryPercentHandler()
+{
+  // test
+  // bm1.setBatteryPercent(40);
+
+  syncBatteryPercent();
+
+  subtractBatteryDailyConsumption();
+}
+
 void loop()
 {  
   char datestring[40];
@@ -1805,6 +2138,11 @@ void loop()
   #ifdef isVEDIRECT
     vedirectHandlerTimer.run(); // simple timer for ve.direct emulation
   #endif
+
+  #ifdef isSyncBattery
+    syncBatteryHandlerTimer.run();  // simple timer for battery sync handler
+  #endif
+
   //Serial.print("L9 ");
   // handle OTA over the air Updates 
    #ifdef isOTA

@@ -79,6 +79,11 @@
 
   // timer stuff for DS18B20
   #define ds18b20HandlerInterval 2000L 
+  SimpleTimer syncBatteryHandlerTimer;
+  int syncBatteryHandle=1;
+
+  // timer stuff for syncBattery
+  #define syncBatteryHandlerInterval 10000L 
   SimpleTimer ds18b20HandlerTimer;
   int ds18B20TimerHandle=1;
 
@@ -142,9 +147,12 @@ char pass[50];
 #define msgDS18B20NotMeasuring 4
 
 #define msgStartup            10
+#define msgLogError           15
 
 #define msgWifiConnected      70
 #define msgWifiNotConnected   71
+#define msgTimeInitialized    80
+#define msgTimeInfo           81
 #define msgWiFiRssiInfo       210
 
 #define msgMQTTInfo           220
@@ -166,6 +174,9 @@ char pass[50];
 #define veNoData              310
 #define veChecksumMeasured    311
 #define veChecksumSetdata     312
+
+#define kgfSendCorrectedPercent 330
+#define kgfSendDailyCorrectedPercent 331
 
 #define mqttKGF110Voltage     "Voltage_V"
 #define mqttKGF110Current     "Current_A"
@@ -217,5 +228,18 @@ class kgfData
     RelayType, Temp;
   char UptimeString[40], LifeLeftString[40];
 };
+
+#ifdef getNTPTIME
+  // get time from NTP server
+  // https://randomnerdtutorials.com/esp32-date-time-ntp-client-server-arduino/
+  const char* ntpServer = "pool.ntp.org";
+  const char* ntpServer2 = "ptbtime3.ptb.de";
+  const char* ntpServer3 = "fritz.box";
+  const long  gmtOffset_sec = 3600;             // Germany_ UTC + 1 = +3600 sec
+  const int   daylightOffset_sec = 3600;
+  int TimeIsInitialized = false;
+  // https://remotemonitoringsystems.ca/time-zone-abbreviations.php
+  const char* defaultTimezone = "CET-1CEST,M3.5.0/2,M10.5.0/3";
+#endif
 
 #endif // define guardian
