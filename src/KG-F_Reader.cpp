@@ -119,6 +119,8 @@ void restartDS18B20MeasurementFunction();
 void vedirectHandler();
 void batteryPercentHandler();
 void printLocalTime(char* printstring, int mode);
+void mqttHandlerQuick();
+void mqttHandlerSlow();
 
 
 /**************************************************!
@@ -144,8 +146,10 @@ void printLocalTime(char* printstring, int mode);
 /******************************************************************************************/
 
 // function to handle all logging output. To serial, into file on SD, to Blynk terminal
-void logOut(char* printstring, unsigned int MsgID, unsigned int MsgSeverity)
-  {
+void logOut(int logLevel, char* printstring, unsigned int MsgID, unsigned int MsgSeverity)
+{
+  if(logLevel >= logLEVEL) 
+  {  
     char timestring[50]="";      
     char outstring[maxPRINTSTRINGLEN + 50];
 
@@ -209,8 +213,8 @@ void logOut(char* printstring, unsigned int MsgID, unsigned int MsgSeverity)
       //sprintf(printstring, "test logOut 2");  
       //Serial.print(printstring);
     #endif
-
   }
+}
 
 
  /**************************************************!
@@ -293,7 +297,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   {
     sprintf(printstring,"Connected after %5.2f sec IP: %s\n",(float)(endtime-starttime)/1000, toStringIp(WiFi.localIP()).c_str());
     Serial.println(printstring);
-    logOut(printstring, msgWifiConnected, msgInfo);
+    logOut(2,printstring, msgWifiConnected, msgInfo);
     #ifdef isDisplay
       sprintf(printstring,"Connected in %5.2f s ",(float)(endtime-starttime)/1000);
       display.setCursor(0, 36);
@@ -309,7 +313,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   {
     sprintf(printstring,"NOT Connected after %5.2f sec",(float)(endtime-starttime)/1000);
     Serial.println(printstring);
-    logOut(printstring, msgWifiConnected, msgInfo);
+    logOut(2,printstring, msgWifiConnected, msgInfo);
     #ifdef isDisplay
       display.setCursor(0, 48);
       display.println(printstring);
@@ -511,7 +515,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
 
       if(TimeIsInitialized){
         printLocalTime(printstring, 3);
-        logOut(printstring, msgTimeInitialized, msgInfo);
+        logOut(2,printstring, msgTimeInitialized, msgInfo);
       }  
       //disconnect WiFi as it's no longer needed
       //in EnvMonitor we do not disconnect
@@ -613,18 +617,18 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         {
           sprintf(printstring,"No DS18B20 Measurement due to flag %d %d\n",
             localInfactoryFlag,stopDS18B20MeasureFlag);
-          logOut(printstring, msgDS18B20NoMeasFlag, msgWarn);  
+          logOut(1,printstring, msgDS18B20NoMeasFlag, msgWarn);  
         }
       }
       else
       {
         vTaskDelay(200 / portTICK_PERIOD_MS); // delay for 200 ms
         // sprintf(printstring,"W %ld %ld ", millis(),LastMeasTimer);    
-        // logOut(printstring, msgDefaultID, msgDefault);
+        // logOut(2,printstring, msgDefaultID, msgDefault);
         GetOneDS18B20Counter ++;  
       }  
       sprintf(printstring,".");
-      logOut(printstring, msgDS18B20NoMeasFlag, msgWarn);
+      logOut(1,printstring, msgDS18B20NoMeasFlag, msgWarn);
     }
   }
 
@@ -654,7 +658,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     // loop to determine the addresses of the DS18B20 sensors. 
     // Repeat in case of crc check failure or duplicate addresses
     sprintf(printstring,"adresseAusgeben - looking for DS18B20 sensors \n");
-    logOut(printstring, msgDS18B20Info, msgInfo);
+    logOut(2,printstring, msgDS18B20Info, msgInfo);
     noRepeats = 0;
     do{
       esp_task_wdt_reset();   // keep watchdog happy
@@ -665,7 +669,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
       numberOfDevices = sensors.getDeviceCount();
   
       sprintf(printstring,"sensors.getDeviceCount found %d Devices \n", numberOfDevices);
-      logOut(printstring, msgDS18B20Info, msgInfo);
+      logOut(2,printstring, msgDS18B20Info, msgInfo);
 
       numberOfDevices = noDS18B20Sensors;   // number of DS18B20 expected; /// temporary
       // Setzen der Genauigkeit
@@ -681,14 +685,14 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
       Serial.println("");
       numberOfDevices = sensors.getDeviceCount();   // does not function with OneWire library 2.3.5 (claimed to be ok with 2.3.3)
       sprintf(printstring,"Found %d sensors\n", numberOfDevices);
-      logOut(printstring, msgDS18B20Info, msgInfo);
+      logOut(2,printstring, msgDS18B20Info, msgInfo);
       esp_task_wdt_reset();   // keep watchdog happy
 
       // code 2: find devices by searching on the onewire bus across all addresses. 
       // workaround, works apparently for ESP32
 
       sprintf(printstring,"Searching 1-Wire-Devices...\n\r");// "\n\r" is NewLine
-      logOut(printstring, msgDS18B20Info, msgInfo);
+      logOut(2,printstring, msgDS18B20Info, msgInfo);
       
       //critical section. Could help with incorrect sensor detection
       // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/freertos-smp.html#critical-sections-disabling-interrupts
@@ -704,7 +708,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         while(sensors.getAddress(addr, noDS18B20Connected)) {  
 
           sprintf(printstring,"1-Wire-Device %d found with Adress: ", noDS18B20Connected);
-          // logOut(printstring, msgDS18B20Info, msgInfo);
+          // logOut(2,printstring, msgDS18B20Info, msgInfo);
           esp_task_wdt_reset();   // keep watchdog happy
 
           // Fletcher checksum algorithm https://de.wikipedia.org/wiki/Fletcher%E2%80%99s_Checksum 
@@ -729,10 +733,10 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
           }
           checksum[noDS18B20Connected] = 256 * sum1 + sum2; // checksum is two sub-sums combined
           // strcat(printstring,"\n");
-          //logOut(printstring, msgDefaultID, msgInfo);
+          //logOut(2,printstring, msgDefaultID, msgInfo);
           if ( OneWire::crc8( addr, 7) != addr[7]) {
             // sprintf(printstring,"CRC is not valid!\n\r");
-            // logOut(printstring, msgDS18B20Info, msgWarn);
+            // logOut(2,printstring, msgDS18B20Info, msgWarn);
             crcCheck = false;
             //return;
           }
@@ -765,9 +769,9 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     }while((check==false || crcCheck==false) && noRepeats < 3); // repeat until the check is true
 
     sprintf(printstring,"Check: %d \n", check);
-    logOut(printstring, msgDS18B20Info, msgInfo);
+    logOut(2,printstring, msgDS18B20Info, msgInfo);
     sprintf(printstring,"Found 1-Wire-Devices: %d in %d loop runs\n", noDS18B20Connected, j);
-    logOut(printstring, msgDS18B20Info, msgInfo);
+    logOut(2,printstring, msgDS18B20Info, msgInfo);
 
     for(j=0 ; j< noDS18B20Connected; j++) 
     {
@@ -780,7 +784,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         strcat(printstring," ");
       }
       strcat(printstring,"\n");
-      logOut(printstring, msgDS18B20Info, msgInfo);
+      logOut(2,printstring, msgDS18B20Info, msgInfo);
     }  
     oneWire.reset_search(); // reset search of oneWire devices
     
@@ -800,7 +804,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   {
     noDS18B20Restarts++;
     sprintf(printstring,"XXXX Restarting DS18B20 measuring function XXXX !!! %d \n", noDS18B20Restarts);
-    logOut(printstring, msgDS18B20Restart, msgWarn);  
+    logOut(2,printstring, msgDS18B20Restart, msgWarn);  
     stopDS18B20MeasureFlag = true;   // use this flag to stop measurements with DS18B20
     esp_task_wdt_reset();   // keep watchdog happy
 
@@ -866,7 +870,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     time_sec = (float)millis()/1000;
 
     sprintf(printstring,"DS18B20[%d] sum: %3.2f n: %d \n",sNo, sum_MQTT_calDS18B20Temperature[sNo],n_MQTT_calDS18B20Temperature[sNo]);
-    logOut(printstring,msgMQTTSendDS10B20, msgInfo);
+    logOut(2,printstring,msgMQTTSendDS10B20, msgInfo);
     if(n_MQTT_calDS18B20Temperature[sNo] > 0)
       temp = sum_MQTT_calDS18B20Temperature[sNo] / n_MQTT_calDS18B20Temperature[sNo];
     else
@@ -884,17 +888,17 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
           sprintf(payloadStr,"%3.2f",last_DSTemp[sNo]);
           // caller! mqttSendItemCounter++;
           sprintf(printstring,"Strings to MQTT: [%s] [%s]\n", topicStr, payloadStr);
-          logOut(printstring, msgMQTTSendDS10B20, msgInfo);
+          logOut(2,printstring, msgMQTTSendDS10B20, msgInfo);
           mqttClient.publish(topicStr, payloadStr);
 
           sprintf(printstring2," MQTT Sent DS18B20 %d temperature % 4.1f before strong rise \n", sNo, last_DSTemp[sNo]);
           strcat(printstring, printstring2);
-          logOut(printstring, msgMQTTSendDS10B20, msgInfo);          
+          logOut(2,printstring, msgMQTTSendDS10B20, msgInfo);          
         }
         sprintf(printstring2," Tmp%d: toMQTT cal: %5.2f last: %5.2f act: %5.2f sum: %5.2f n: %d\n",
           sNo, calDS18B20Temperature[0], last_DSTemp[sNo], temp, sum_MQTT_calDS18B20Temperature[0], n_MQTT_calDS18B20Temperature[0]);
         strcat(printstring, printstring2);
-        logOut(printstring, msgMQTTSendDS10B20, msgInfo);
+        logOut(2,printstring, msgMQTTSendDS10B20, msgInfo);
 
         last_DSTemp[sNo] = temp;
         sum_MQTT_calDS18B20Temperature[sNo] = 0;
@@ -905,14 +909,14 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         last_TimeDSSent[sNo] = time_sec; 
         // caller! mqttSendItemCounter++;
         sprintf(printstring,"Strings to MQTT: [%s] [%s] at time %5.2f\n", topicStr, payloadStr, time_sec);
-        logOut(printstring, msgMQTTSendDS10B20, msgInfo);
+        logOut(2,printstring, msgMQTTSendDS10B20, msgInfo);
         mqttClient.publish(topicStr, payloadStr);
       }  
       else{
         sprintf(printstring2,"\n Tmp%d: notMQTT cal: %5.2f last: %5.2f act: %5.2f sum: %5.2f n: %d last sent:%5.3f[s] now:%5.3f[s]",
           sNo,calDS18B20Temperature[0], last_DSTemp[sNo], temp, sum_MQTT_calDS18B20Temperature[0], n_MQTT_calDS18B20Temperature[0], last_DSTemp[sNo], time_sec);
         strcat(printstring, printstring2);
-        logOut(printstring, msgMQTTSendDS10B20, msgWarn);
+        logOut(2,printstring, msgMQTTSendDS10B20, msgWarn);
         sum_MQTT_calDS18B20Temperature[sNo] = 0;
         n_MQTT_calDS18B20Temperature[sNo] = 0;
       }
@@ -934,7 +938,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     // Loop until we're reconnected
     while (!mqttClient.connected() && i<2) {
       sprintf(printstring, "Attempting MQTT connection...");
-      logOut(printstring, msgMQTTConnect, msgInfo);
+      logOut(2,printstring, msgMQTTConnect, msgInfo);
 
       // Attempt to connect
       if (mqttClient.connect(mqttDeviceString, mqttDefaultUser, mqttDefaultPaSSWORD)) {
@@ -942,7 +946,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         // sprintf(topic1,"esp32/KombiExt");
         sprintf(topic2,"esp/cmnd/%s",mqttDeviceString);
         sprintf(printstring, "MQTT connected, subscribed: %s %s\n",topic1, topic2);
-        logOut(printstring, msgMQTTSubscribe, msgInfo);
+        logOut(2,printstring, msgMQTTSubscribe, msgInfo);
         
         // Subscribe. Multiple topics are possible.
         mqttClient.subscribe("esp32/KombiExt");
@@ -956,7 +960,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         Serial.print(mqttClient.state());
         Serial.println(" try again in 2 seconds");
         sprintf(printstring, "MQTT connection failed. Retry in 2 seconds");
-        logOut(printstring, msgMQTTError, msgWarn);
+        logOut(2,printstring, msgMQTTError, msgWarn);
 
         // Wait 2 seconds before retrying
         delay(2000);
@@ -974,7 +978,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   void mqttCallbackFunction(char* topic, byte* message, unsigned int length) 
   {
     sprintf(printstring, "MQTT msg received: [%s] [%s]",topic, message);
-    logOut(printstring, msgMQTTReceive, msgInfo);
+    logOut(2,printstring, msgMQTTReceive, msgInfo);
 
     Serial.print("Message arrived on topic: ");
     Serial.print(topic);
@@ -998,7 +1002,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     if(strstr(topic,myTopic))  
     {
       sprintf(printstring,"action: esp32 %s receivedMQTT %s",mqttDeviceString, message);
-      logOut(printstring, msgMQTTReceive, msgInfo);
+      logOut(2,printstring, msgMQTTReceive, msgInfo);
     }
   } // mqttCallbackFunction
 
@@ -1011,7 +1015,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   void mqttSend(char *topic, char* payload)
   {
     sprintf(printstring,"Strings to MQTT: [%s] [%s]\n", topic, payload);
-    logOut(printstring, msgMQTTInfo, msgInfo);
+    logOut(1, printstring, msgMQTTInfo, msgInfo);
     mqttClient.publish(topic, payload);   
   }
 
@@ -1047,15 +1051,15 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     if (!tst)
     {
       sprintf(printstring,"MQTT client not connected, return: %d State: %d\n",tst, mqttClient.state());
-      logOut(printstring, msgMQTTConnect, msgWarn);
+      logOut(2,printstring, msgMQTTConnect, msgWarn);
       mqttReconnect();
     }  
     else{
       sprintf(printstring,"MQTT client is still connected, return: %d\n",tst);
-      logOut(printstring, msgMQTTConnect, msgWarn);
+      logOut(2,printstring, msgMQTTConnect, msgWarn);
     }
     sprintf(printstring,"MQTT client after attempt to connect, State: %d\n", mqttClient.state());
-    logOut(printstring, msgMQTTConnect, msgWarn);
+    logOut(2,printstring, msgMQTTConnect, msgWarn);
     
     if (kgf.DataValid && mqttClient.connected()) 
     {
@@ -1150,7 +1154,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     else
     {
       sprintf(printstring,"no valid data %d or MQTT client % d not connected\n",kgf.DataValid,  mqttClient.connected());
-      logOut(printstring,  msgMQTTError, msgErr);
+      logOut(2,printstring,  msgMQTTError, msgErr);
     }
   } // mqttHandlerQuick
 
@@ -1182,15 +1186,15 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     if (!tst)
     {
       sprintf(printstring,"MQTT client not connected, return: %d State: %d\n",tst, mqttClient.state());
-      logOut(printstring, msgMQTTConnect, msgWarn);
+      logOut(2,printstring, msgMQTTConnect, msgWarn);
       mqttReconnect();
     }  
     else{
       sprintf(printstring,"MQTT client is still connected, return: %d\n",tst);
-      logOut(printstring, msgMQTTConnect, msgWarn);
+      logOut(2,printstring, msgMQTTConnect, msgWarn);
     }
     sprintf(printstring,"MQTT client after attempt to connect, State: %d\n", mqttClient.state());
-    logOut(printstring, msgMQTTConnect, msgWarn);
+    logOut(2,printstring, msgMQTTConnect, msgWarn);
     
     if (kgf.DataValid && mqttClient.connected()) 
     {
@@ -1284,7 +1288,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     else
     {
       sprintf(printstring,"no valid data %d or MQTT client not connected %d", kgf.DataValid,  mqttClient.connected());
-      logOut(printstring, msgMQTTError, msgErr);
+      logOut(2,printstring, msgMQTTError, msgErr);
     }
   } // mqttHandlerSlow
 #endif // isMQTT
@@ -1313,23 +1317,23 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     sprintf(printstring,"BaseDS18B20 Tmp1 %3.2f Tmp2 %3.2f Tmp3 %3.2f %d %d %d - %d %ld\n", 
       DS18B20Temperature[0], DS18B20Temperature[1], DS18B20Temperature[2], 
       notMeasuredCount, notChangedCount, noDS18B20Restarts, state, GetOneDS18B20Counter);
-     logOut(printstring, msgDS18B20Info, msgInfo);
+     logOut(2,printstring, msgDS18B20Info, msgInfo);
     */ 
      
     /*
     sprintf(printstring,"CalDS18B20 Tmp1  %3.2f Tmp2 %3.2f Tmp3 %3.2f\n", 
       calDS18B20Temperature[0], calDS18B20Temperature[1], calDS18B20Temperature[2]);
-    logOut(printstring, msgDS18B20Info, msgInfo);
+    logOut(2,printstring, msgDS18B20Info, msgInfo);
     sprintf(printstring,"%d %d %d - %d %ld\n", 
       notMeasuredCount, notChangedCount, noDS18B20Restarts, state, GetOneDS18B20Counter);
-    logOut(printstring, msgDS18B20Info, msgInfo);
+    logOut(2,printstring, msgDS18B20Info, msgInfo);
     */
     if(GetOneDS18B20Counter <= previousGetOneDS18B20Counter)  // DS18B20 routine not counting
     {
       notMeasuredDS18B20 ++;
       sprintf(printstring,"!!!! DS18B20 not measuring !!! %ld %ld %ld \n",
         GetOneDS18B20Counter, previousGetOneDS18B20Counter, notMeasuredDS18B20);
-      logOut(printstring, msgDS18B20NotMeasuring, msgWarn);  
+      logOut(2,printstring, msgDS18B20NotMeasuring, msgWarn);  
       vTaskDelay(notMeasuredDS18B20 * 1000 / portTICK_PERIOD_MS); // progressive delay to give the measuring routine more time
     }  
     else
@@ -1341,7 +1345,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
 
   //  sprintf(printstring,"Cal.DS18B20 Tmp1 %3.1f Tmp2 %3.1f Tmp3 %3.1f \n", 
   //     calDS18B20Temperature[0], calDS18B20Temperature[1], calDS18B20Temperature[2]);
-  //  logOut(printstring, msgDS18B20Info, msgInfo);
+  //  logOut(2,printstring, msgDS18B20Info, msgInfo);
     
     double limit = -110.0; // EXPDis
   
@@ -1363,7 +1367,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     {
       sprintf(printstring,"\nRestarting DS18B20. No measurement taken in %d %d cycles - counter not incr: %ld Manual: %d\n",
         notMeasuredCount, notChangedCount, notMeasuredDS18B20, manualDS18B20Restart);
-      logOut(printstring, msgDS18B20Restart, msgWarn);
+      logOut(2,printstring, msgDS18B20Restart, msgWarn);
       restartDS18B20MeasurementFunction();
       notMeasuredCount = 0; // reset the counter
       notChangedCount = 0;  // reset the counter
@@ -1485,7 +1489,7 @@ int createVEdirectMessage1(char* message)
     int corr = 256 - sum;
 
     sprintf(printstring,"message1 w/o checksum len: %d sum: %d corr: %d \n", strlen(message), sum, corr);
-    logOut(printstring, veCreateInfo1, msgInfo);
+    logOut(1,printstring, veCreateInfo1, msgInfo);
     // Add checksum to message
     int len=strlen(message);
     //strcat(message,(char)corr);
@@ -1498,9 +1502,9 @@ int createVEdirectMessage1(char* message)
       checksum = (checksum + message[i]) & 255; 
    
     sprintf(printstring,"%s \n ", message);
-    logOut(printstring,  veCreateInfo2, msgInfo);
+    logOut(1,printstring,  veCreateInfo2, msgInfo);
     sprintf(printstring," message len: %d sum: %d corr: %d Checksum: %d\n", strlen(message), sum, corr, checksum);
-    logOut(printstring, veCreateInfo3, msgInfo);
+    logOut(1,printstring, veCreateInfo3, msgInfo);
 
     return(strlen(message));
  } //createVEdirectMessage1
@@ -1648,7 +1652,7 @@ int createVEdirectMessage1(char* message)
     int corr = 256 - sum;
 
     sprintf(printstring,"message2 w/o checksum len: %d sum: %d corr: %d \n", strlen(message), sum, corr);
-    logOut(printstring, veCreateInfo4, msgInfo);
+    logOut(1,printstring, veCreateInfo4, msgInfo);
     // Add checksum to message
     int len=strlen(message);
     //strcat(message,(char)corr);
@@ -1661,9 +1665,9 @@ int createVEdirectMessage1(char* message)
       checksum = (checksum + message[i]) & 255; 
    
     sprintf(printstring,"%s \n ", message);
-    logOut(printstring, veCreateInfo5, msgInfo);
+    logOut(1,printstring, veCreateInfo5, msgInfo);
     sprintf(printstring," message len: %d sum: %d corr: %d Checksum: %d\n", strlen(message), sum, corr, checksum);
-    logOut(printstring,  veCreateInfo6, msgInfo);
+    logOut(1,printstring,  veCreateInfo6, msgInfo);
 
     return(strlen(message));
  } //createVEdirectMessage
@@ -1691,7 +1695,7 @@ int createVEdirectMessage1(char* message)
     else
     {
       sprintf(printstring,"no valid data %d for ve.direct emulator\n", kgf.DataValid);
-      logOut(printstring,  veNoData, msgErr);
+      logOut(2,printstring,  veNoData, msgErr);
     }
   }
 
@@ -1720,7 +1724,7 @@ void setup()
   // SerialSW.begin(115200); //, SERIAL_8N1, RXSW, TXSW);
 
   sprintf(printstring,"setup() before connecting to wifi\n");
-  logOut(printstring,msgStartup,msgInfo);
+  logOut(2,printstring,msgStartup,msgInfo);
   // connect to wifi network
   bool connectPossible = connectToWiFi(default_ssid, default_pass, 7);
 
@@ -1740,7 +1744,7 @@ void setup()
   // bm1.begin(1, SerialSW);
   bm1.getSetValues(); // update the set values .. that could really be part of begin()
   sprintf(printstring,"setup() before starting OTA\n");
-  logOut(printstring,msgStartup, msgInfo);
+  logOut(2,printstring,msgStartup, msgInfo);
 
   #ifdef isOTA
   ArduinoOTA.setHostname("KGF_Reader");
@@ -1786,7 +1790,7 @@ void setup()
   #endif // isOTA
 
   sprintf(printstring,"setup() before starting MQTT\n");
-  logOut(printstring,msgStartup, msgInfo);
+  logOut(2,printstring,msgStartup, msgInfo);
 
   // https://randomnerdtutorials.com/esp32-mqtt-publish-subscribe-arduino-ide/
   #ifdef isMQTT // library dafür: pubsubclient
@@ -1812,13 +1816,13 @@ void setup()
   #endif //isVEDIRECT
 
   sprintf(printstring,"setup() before starting DS18B20\n");
-  logOut(printstring,msgStartup, msgInfo);
+  logOut(2,printstring,msgStartup, msgInfo);
 
   esp_task_wdt_reset();   // keep watchdog happy
 
   #ifdef isOneDS18B20
     sprintf(printstring,"starting DS18B20\n");
-    logOut(printstring,msgStartup, msgInfo);
+    logOut(2,printstring,msgStartup, msgInfo);
 
     // switch on Power (via GPIO 32)
     pinMode(POWER_ONEWIRE_BUS, OUTPUT);
@@ -1845,7 +1849,7 @@ void setup()
 
   #ifdef isSyncBattery
     sprintf(printstring,"starting handler for synchBattery()\n");
-    logOut(printstring,msgStartup, msgInfo);    
+    logOut(2,printstring,msgStartup, msgInfo);    
     syncBatteryHandle = syncBatteryHandlerTimer.setInterval(syncBatteryHandlerInterval, batteryPercentHandler);
   #endif
 
@@ -1854,6 +1858,14 @@ void setup()
     // https://randomnerdtutorials.com/esp32-date-time-ntp-client-server-arduino/
     getNTPTime();
   #endif  
+
+  #ifdef isMQTT
+    // get initial data
+    getKGF110Data();
+    // call handlers once to send initial data via MQTT
+    mqttHandlerQuick();
+    mqttHandlerSlow();
+  #endif
 }  // setup
 
 
@@ -1916,7 +1928,7 @@ bool getKGF110Data()
   int tst_checksumM = bm1.getMeasuredValuesTstChecksum();
   sprintf(printstring,"KFG sent measured values checksum: %d calc checksum: %d",
     checksumM, tst_checksumM);
-  logOut(printstring, veChecksumMeasured, msgDefault);
+  logOut(2,printstring, veChecksumMeasured, msgDefault);
 
   esp_task_wdt_reset();   // keep watchdog happy
 
@@ -1924,7 +1936,7 @@ bool getKGF110Data()
   int tst_checksumS = bm1.getSetValuesTstChecksum();
   sprintf(printstring,"KFG sent set values checksum: %d calc checksum: %d",
     checksumM, tst_checksumM);
-  logOut(printstring, veChecksumSetdata, msgDefault);
+  logOut(2,printstring, veChecksumSetdata, msgDefault);
 
   // check for valid data. return and do not populate data if no valid input  
   actUptime = bm1.getUptime();
@@ -1939,7 +1951,7 @@ bool getKGF110Data()
   {
     sprintf(printstring,"getKGF110Data inval data: UpT: %d %d T: %d actSetC: %3.2f",
        actUptime, lastUptime, actTemp, actSetCapa);
-    logOut(printstring, veNoData, msgWarn);
+    logOut(2,printstring, veNoData, msgWarn);
     lastUptime = actUptime;
     return(false);
   }
@@ -1947,7 +1959,7 @@ bool getKGF110Data()
   {
     sprintf(printstring,"getKGF110Data valid data: UpT: %d %d T: %d actSetC: %3.2", 
       actUptime, lastUptime, actTemp, actSetCapa);
-    logOut(printstring, veNoData, msgWarn);
+    logOut(2,printstring, veNoData, msgWarn);
     lastUptime = actUptime;
     lastSetCapa = actSetCapa;
   }  
@@ -2008,10 +2020,11 @@ bool getKGF110Data()
 }
 
 /**************************************************!
-    @brief    syncBatteryPercent()
-    @details  New 2024-01-28, out of loop()
-    @details  Checks battery capacity versus battery voltage. 
-    @details  Corrects if necessary according to table values
+    @brief    subtractBatteryDailyConsumption()
+    @details  New 2024-01-28, via timer out of loop()
+    @details  Checks if a day has elapsed (date change at midnight)
+    @details  and subtracts a set percent value off the actual battery capacity in %
+    @details  to take into account the consumption by the BM, ESPs etc (too low to register by BM)
     @return   none
   ***************************************************/
 
@@ -2029,7 +2042,7 @@ float normalizedVoltage(float voltage)
   return(-1); // error  
 }
 
-#define batterySubtractValue 2   // this is the % value that needs to be subtracted from percentage at midnight every day
+#define batterySubtractValue 2.5   // this is the % value that needs to be subtracted from percentage at midnight every day
 void subtractBatteryDailyConsumption()
 {
   char ISODate[50];
@@ -2043,10 +2056,12 @@ void subtractBatteryDailyConsumption()
    if (TimeIsInitialized == true) {
        printLocalTime(printstring, 2);
        printLocalTime(ISODate, 8);
+       if(strlen(lastISODate)<1)      // ensure proper initialization
+        strcpy(lastISODate, ISODate);
      }   
    else
     sprintf(printstring," Not available");  
-    logOut(printstring, msgTimeInfo, msgDS18B20Info);
+    logOut(2,printstring, msgTimeInfo, msgInfo);
   #endif 
 
   if(kgf.SetCapa > 0.01 && kgf.RemCapa > 0.01) // prevent div by zero
@@ -2054,45 +2069,88 @@ void subtractBatteryDailyConsumption()
   else   
     RemCapaPercent = 10;
 
-  if(!strstr(ISODate, lastISODate)) // date has changed
+  sprintf(printstring,"subtractBatteryDaily: Date %s lastDate: %s (V: %3.1f RemC%%:%3.1f RemC: %3.1f SetC %3.1f)", 
+       ISODate, lastISODate, kgf.Voltage, RemCapaPercent, kgf.RemCapa, kgf.SetCapa);
+    logOut(2,printstring, kgfSubtrDailyValues1, msgInfo);  
+
+  if(0 != strcmp(ISODate, lastISODate)) // date has changed, strings not equal (equal returns 0)
   {
     newPercentValue = (int)(RemCapaPercent - batterySubtractValue);
     ret=bm1.setBatteryPercent(newPercentValue);
     strcpy(lastISODate, ISODate);
-    sprintf(printstring,"Battery Percent charged set to: %d returned: %d (V: %3.1f RemC: %3.1f SetV %3.1f)", 
+    sprintf(printstring,"subtractBatteryDaily BatPercent set to: %d returned: %d (V: %3.1f RemC: %3.1f SetC %3.1f)", 
       newPercentValue, ret, kgf.Voltage, kgf.RemCapa, kgf.SetCapa);
-    logOut(printstring, kgfSendDailyCorrectedPercent, msgInfo);
+    logOut(2,printstring, kgfSubtrDailyCorrectedPercent, msgInfo);
   }
-
+  else{
+      sprintf(printstring,"subtractBatteryDaily BatPercent unchanged (V: %3.1f RemC: %3.1f SetC %3.1f)", 
+         kgf.Voltage, kgf.RemCapa, kgf.SetCapa);
+    logOut(2,printstring, kgfSubtrDailyValues2, msgInfo);  
+  }
 }
 
-#define voltageThreshold    13.0
-#define capacityThresholdPercent   35
-#define correctCapacityPercent     30
+/**************************************************!
+    @brief    syncBatteryPercent()
+    @details  New 2024-01-28, via timer out of loop()
+    @details  Checks battery capacity versus battery voltage. 
+    @details  Corrects if necessary according to preset values
+    @details  may also have to take into account the current:
+    @details  corrV = actV +(actPower[W] * corrFactor)
+    @details  corrFactor = 0.0013
+    @return   none
+  ***************************************************/
+
+#define voltageThreshold           13.1 // 13.0
+#define capacityThresholdPercent   40   // 35
+#define correctCapacityPercent     35
+#define corrFactor 0.0013
+
 void syncBatteryPercent()
 {
   bool ret;
-  float RemCapaPercent;
+  float RemCapaPercent, corrVoltage, normalVoltage;
+  static int count = 0;
 
   // check for need to synchronize battery charge percentage
   if(kgf.SetCapa > 0.01 && kgf.RemCapa > 0.01) // prevent div by zero
     RemCapaPercent = 100*kgf.RemCapa / kgf.SetCapa;
   else   
     RemCapaPercent = 1;
-  if((normalizedVoltage(kgf.Voltage) < voltageThreshold) && (RemCapaPercent > capacityThresholdPercent)){
 
-    ret = bm1.setBatteryPercent(correctCapacityPercent);
-    sprintf(printstring,"Battery Percent charged set to: %d returned: %d (V: %3.1f RemC: %3.1f SetV %3.1f)", 
-      correctCapacityPercent, ret, kgf.Voltage, kgf.RemCapa, kgf.SetCapa);
-    logOut(printstring, kgfSendCorrectedPercent, msgWarn);
+  normalVoltage =   normalizedVoltage(kgf.Voltage);
+  if(kgf.Power < 0) // current correction: higher actual value if larger power out of battery
+    corrVoltage = normalVoltage + (-kgf.Power * corrFactor); // kgf.Power is negative when current out of battery 
+  else
+    corrVoltage = normalVoltage;  
+
+  //if((normalizedVoltage(kgf.Voltage) < voltageThreshold) && (RemCapaPercent > capacityThresholdPercent))
+  if((corrVoltage < voltageThreshold) && (RemCapaPercent > capacityThresholdPercent))
+  {
+    count++;
+    if(count > 5)
+    {
+      ret = bm1.setBatteryPercent(correctCapacityPercent);
+      sprintf(printstring,"Battery Percent charged set to: %d returned: %d (V: %3.3f (n:%3.3f c:%3.3f) RemC: %3.1f SetV %3.1f)", 
+        correctCapacityPercent, ret, kgf.Voltage, normalVoltage, corrVoltage, kgf.RemCapa, kgf.SetCapa);
+      logOut(2,printstring, kgfSyncBatCorrPercent, msgWarn);  
+      count = 0;
+    }    
+    else{
+      sprintf(printstring,"Battery Percent not yet changed. Count: %d (V: %3.3f (n:%3.3f c:%3.3f) RemC: %3.1f SetV %3.1f)", 
+        count, kgf.Voltage, normalVoltage, corrVoltage, kgf.RemCapa, kgf.SetCapa);
+
+      logOut(2,printstring, kgfSyncBatCorrPercWaiting, msgInfo);
+    }  
   }  
   else{
-    sprintf(printstring,"Battery Percent not changed. (V: %3.1f C%% %3.1f). IP: %s", 
-      kgf.Voltage, kgf.RemCapa, toStringIp(WiFi.localIP()).c_str());
-    logOut(printstring, kgfSendCorrectedPercent, msgInfo);  
+    count = 0;
+    sprintf(printstring,"Battery Percent unchanged. (V: %3.3f (n:%3.3f c:%3.3f) C%% %3.1f (%3.1f%%)). IP: %s", 
+      kgf.Voltage, normalVoltage, corrVoltage, kgf.RemCapa, RemCapaPercent, toStringIp(WiFi.localIP()).c_str());
+    logOut(2,printstring, kgfSyncBatUnchgPercent, msgInfo);  
   }
 }
 
+// handler called by timer
 void batteryPercentHandler()
 {
   // test
@@ -2100,7 +2158,7 @@ void batteryPercentHandler()
 
   syncBatteryPercent();
 
-  subtractBatteryDailyConsumption();
+  subtractBatteryDailyConsumption();  // check if a day has passed, and subtract daily value if necessary
 }
 
 void loop()
@@ -2112,7 +2170,7 @@ void loop()
 
   kgf.DataValid = getKGF110Data(); // get data from battery monitor and store them in global variables
   sprintf(printstring,"return from getKGFData: %d", kgf.DataValid);
-  logOut(printstring, veCreateInfo3, msgInfo);
+  logOut(2,printstring, veCreateInfo3, msgInfo);
   //Serial.print("L3a ");
   longToDateString1(kgf.LifeLeft, datestring);
   //Serial.print("L3b ");

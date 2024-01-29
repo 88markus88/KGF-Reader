@@ -131,6 +131,7 @@ char pass[50];
 #endif
 
 #define WDT_TIMEOUT_SECONDS 55  // 55 seconds watchdog timeout. Not too short, or the chip is dead!
+#define logLEVEL 2  // if 2: level messages not displayed
 
 //Message Severities
 #define msgDefault  0
@@ -175,8 +176,13 @@ char pass[50];
 #define veChecksumMeasured    311
 #define veChecksumSetdata     312
 
-#define kgfSendCorrectedPercent 330
-#define kgfSendDailyCorrectedPercent 331
+#define kgfSyncBatCorrPercent 330
+#define kgfSyncBatCorrPercWaiting 331
+#define kgfSyncBatUnchgPercent 332
+
+#define kgfSubtrDailyCorrectedPercent 340
+#define kgfSubtrDailyValues1   341
+#define kgfSubtrDailyValues2   342
 
 #define mqttKGF110Voltage     "Voltage_V"
 #define mqttKGF110Current     "Current_A"
