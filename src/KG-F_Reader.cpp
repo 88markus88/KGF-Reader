@@ -2042,7 +2042,7 @@ float normalizedVoltage(float voltage)
   return(-1); // error  
 }
 
-#define batterySubtractValue 2.5   // this is the % value that needs to be subtracted from percentage at midnight every day
+#define batterySubtractValue 2   // this is the % value that needs to be subtracted from percentage at midnight every day
 void subtractBatteryDailyConsumption()
 {
   char ISODate[50];
@@ -2060,14 +2060,17 @@ void subtractBatteryDailyConsumption()
         strcpy(lastISODate, ISODate);
      }   
    else
-    sprintf(printstring," Not available");  
+    sprintf(printstring," Time not available - do nothing");  
     logOut(2,printstring, msgTimeInfo, msgInfo);
+    return;
   #endif 
 
   if(kgf.SetCapa > 0.01 && kgf.RemCapa > 0.01) // prevent div by zero
     RemCapaPercent = 100*kgf.RemCapa / kgf.SetCapa;
-  else   
+  else{   
     RemCapaPercent = 10;
+    return; // do nothing if proper value for remaining capacity could not be determined
+  }  
 
   sprintf(printstring,"subtractBatteryDaily: Date %s lastDate: %s (V: %3.1f RemC%%:%3.1f RemC: %3.1f SetC %3.1f)", 
        ISODate, lastISODate, kgf.Voltage, RemCapaPercent, kgf.RemCapa, kgf.SetCapa);
@@ -2103,7 +2106,8 @@ void subtractBatteryDailyConsumption()
 #define voltageThreshold           13.1 // 13.0
 #define capacityThresholdPercent   40   // 35
 #define correctCapacityPercent     35
-#define corrFactor 0.0013
+#define corrFactor                 0.0015
+#define noBelowBeforeCorr          5
 
 void syncBatteryPercent()
 {
@@ -2118,16 +2122,21 @@ void syncBatteryPercent()
     RemCapaPercent = 1;
 
   normalVoltage =   normalizedVoltage(kgf.Voltage);
+
+  // correct voltage to take care of power consumption, which causes voltage to bee 
+  // smaller than in rest. 
+  // example: normalVoltage is 13.16, power is 100 W => 
+  // corrVoltage = 13.16+(-(-100)*0.0015) = 13.16 + 0.15 = 13.29 V
   if(kgf.Power < 0) // current correction: higher actual value if larger power out of battery
     corrVoltage = normalVoltage + (-kgf.Power * corrFactor); // kgf.Power is negative when current out of battery 
   else
     corrVoltage = normalVoltage;  
 
-  //if((normalizedVoltage(kgf.Voltage) < voltageThreshold) && (RemCapaPercent > capacityThresholdPercent))
+  // Count: at least 
   if((corrVoltage < voltageThreshold) && (RemCapaPercent > capacityThresholdPercent))
   {
     count++;
-    if(count > 5)
+    if(count > noBelowBeforeCorr)
     {
       ret = bm1.setBatteryPercent(correctCapacityPercent);
       sprintf(printstring,"Battery Percent charged set to: %d returned: %d (V: %3.3f (n:%3.3f c:%3.3f) RemC: %3.1f SetV %3.1f)", 
