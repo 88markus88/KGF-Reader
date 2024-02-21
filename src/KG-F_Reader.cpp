@@ -2058,11 +2058,12 @@ void subtractBatteryDailyConsumption()
        printLocalTime(ISODate, 8);
        if(strlen(lastISODate)<1)      // ensure proper initialization
         strcpy(lastISODate, ISODate);
-     }   
-   else
+   }   
+   else{
     sprintf(printstring," Time not available - do nothing");  
     logOut(2,printstring, msgTimeInfo, msgInfo);
     return;
+  }
   #endif 
 
   if(kgf.SetCapa > 0.01 && kgf.RemCapa > 0.01) // prevent div by zero
@@ -2103,7 +2104,7 @@ void subtractBatteryDailyConsumption()
     @return   none
   ***************************************************/
 
-#define voltageThreshold           13.1 // 13.0
+#define voltageThreshold           13.0 // 13.1
 #define capacityThresholdPercent   40   // 35
 #define correctCapacityPercent     35
 #define corrFactor                 0.0015
