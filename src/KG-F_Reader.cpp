@@ -1115,7 +1115,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
       mqttSend(topicStr, payloadStr); 
 
       sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110EnergyIn);
-      sprintf(payloadStr,"%4.3f",kgf.EnergyIn);
+      sprintf(payloadStr,"%4.3f",10*kgf.EnergyIn); // original transmitted data is in 0.01 KWh, multiply by 10 => Wh
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
@@ -1928,7 +1928,7 @@ bool getKGF110Data()
   int tst_checksumM = bm1.getMeasuredValuesTstChecksum();
   sprintf(printstring,"KFG sent measured values checksum: %d calc checksum: %d",
     checksumM, tst_checksumM);
-  logOut(2,printstring, veChecksumMeasured, msgDefault);
+  logOut(1,printstring, veChecksumMeasured, msgDefault);
 
   esp_task_wdt_reset();   // keep watchdog happy
 
@@ -1936,7 +1936,7 @@ bool getKGF110Data()
   int tst_checksumS = bm1.getSetValuesTstChecksum();
   sprintf(printstring,"KFG sent set values checksum: %d calc checksum: %d",
     checksumM, tst_checksumM);
-  logOut(2,printstring, veChecksumSetdata, msgDefault);
+  logOut(1,printstring, veChecksumSetdata, msgDefault);
 
   // check for valid data. return and do not populate data if no valid input  
   actUptime = bm1.getUptime();
@@ -1959,7 +1959,7 @@ bool getKGF110Data()
   {
     sprintf(printstring,"getKGF110Data valid data: UpT: %d %d T: %d actSetC: %3.2", 
       actUptime, lastUptime, actTemp, actSetCapa);
-    logOut(2,printstring, veNoData, msgWarn);
+    logOut(1,printstring, veNoData, msgWarn);
     lastUptime = actUptime;
     lastSetCapa = actSetCapa;
   }  
@@ -2100,15 +2100,15 @@ void subtractBatteryDailyConsumption()
     @details  Corrects if necessary according to preset values
     @details  may also have to take into account the current:
     @details  corrV = actV +(actPower[W] * corrFactor)
-    @details  corrFactor = 0.0013
+    @details  corrFactor = 0.0015
     @return   none
   ***************************************************/
 
-#define voltageThreshold           13.0 // 13.1
-#define capacityThresholdPercent   40   // 35
-#define correctCapacityPercent     35
-#define corrFactor                 0.0015
-#define noBelowBeforeCorr          5
+#define voltageThreshold           12.8 //12.9 // 13.0 // voltage threshold
+#define capacityThresholdPercent   19 //25   // 40     // capacity percen threshold
+#define correctCapacityPercent     15 //20             // value to set capacity if limits exceded
+#define corrFactor                 0.0015              // voltage correction factor: used to increase check voltage by multiplying this factor with power in Watt
+#define noBelowBeforeCorr          5  // no. of times that limits have to be exceeded before syncing capacity to correctCapacityPercent
 
 void syncBatteryPercent()
 {
@@ -2133,7 +2133,7 @@ void syncBatteryPercent()
   else
     corrVoltage = normalVoltage;  
 
-  // Count: at least 
+  // Count: values exceeded at least noBelowBeforeCorr times before syncing (=correcting) capacity
   if((corrVoltage < voltageThreshold) && (RemCapaPercent > capacityThresholdPercent))
   {
     count++;
@@ -2180,7 +2180,7 @@ void loop()
 
   kgf.DataValid = getKGF110Data(); // get data from battery monitor and store them in global variables
   sprintf(printstring,"return from getKGFData: %d", kgf.DataValid);
-  logOut(2,printstring, veCreateInfo3, msgInfo);
+  logOut(1,printstring, veCreateInfo3, msgInfo);
   //Serial.print("L3a ");
   longToDateString1(kgf.LifeLeft, datestring);
   //Serial.print("L3b ");
