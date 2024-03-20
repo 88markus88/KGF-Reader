@@ -2079,7 +2079,7 @@ void subtractBatteryDailyConsumption()
 
   if(0 != strcmp(ISODate, lastISODate)) // date has changed, strings not equal (equal returns 0)
   {
-    newPercentValue = (int)(RemCapaPercent - batterySubtractValue);
+    newPercentValue = (int)(RemCapaPercent - batterySubtractValue + 0.5); // rounding
     ret=bm1.setBatteryPercent(newPercentValue);
     strcpy(lastISODate, ISODate);
     sprintf(printstring,"subtractBatteryDaily BatPercent set to: %d returned: %d (V: %3.1f RemC: %3.1f SetC %3.1f)", 
@@ -2105,7 +2105,7 @@ void subtractBatteryDailyConsumption()
   ***************************************************/
 
 #define voltageThreshold           12.8 //12.9 // 13.0 // voltage threshold
-#define capacityThresholdPercent   19 //25   // 40     // capacity percen threshold
+#define capacityThresholdPercent   18// 19 //25   // 40     // capacity percent threshold
 #define correctCapacityPercent     15 //20             // value to set capacity if limits exceded
 #define corrFactor                 0.0015              // voltage correction factor: used to increase check voltage by multiplying this factor with power in Watt
 #define noBelowBeforeCorr          5  // no. of times that limits have to be exceeded before syncing capacity to correctCapacityPercent
