@@ -1119,14 +1119,21 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
       mqttSendItemCounter++;
       mqttSend(topicStr, payloadStr); 
 
-       // SOC: State of charge in promille
+      // SOC: State of charge in promille
+      // SOC_Percent: SOC in percent, added 2024-11-18
       if(kgf.SetCapa > 0.01 && kgf.RemCapa > 0.01) // prevent div by zero
       {
         int soc = int(0.5 + 1000 * kgf.RemCapa / kgf.SetCapa);
+        float soc_percent = 100 * kgf.RemCapa / kgf.SetCapa;
         if(soc >= 0 && soc <= 1000)
         {
           sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110SOC);
           sprintf(payloadStr,"%4d",soc);
+          mqttSendItemCounter++;
+          mqttSend(topicStr, payloadStr); 
+
+          sprintf(topicStr,"esp32/%s/%s/%s",mqttDeviceString, mqttSensorKGF110ID, mqttKGF110SOCPercent);
+          sprintf(payloadStr,"%4.2f",soc_percent);
           mqttSendItemCounter++;
           mqttSend(topicStr, payloadStr); 
         }

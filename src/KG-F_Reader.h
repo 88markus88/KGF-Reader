@@ -212,6 +212,7 @@ char pass[50];
 #define mqttKGF110OCPReverseCurrent "OCPRevCurr_A"// was "OCPReverseCurrent_A"
 #define mqttKGF110OPPPower "OPPPower_W"
 #define mqttKGF110SOC "SOC"
+#define mqttKGF110SOCPercent "SOC_Percent"
 #define mqttKGF110CE "CE"
 #define mqttKGF110MeasValSntChksum  "MeasValSntChecksum" // was "MeasValSentChecksum"
 #define mqttKGF110MeasValTstChksum  "MeasValTstChecksum"
