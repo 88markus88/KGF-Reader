@@ -930,10 +930,12 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     @details  https://randomnerdtutorials.com/esp32-mqtt-publish-subscribe-arduino-ide/
     @details  API description: https://pubsubclient.knolleary.net/api
     @details  pubsubclient library is used
-    @return   void
+    @return   boolean: true if successful, otherwise false
   ***************************************************/
-  void mqttReconnect() 
-  { int i=0;
+  boolean mqttReconnect() 
+  { 
+    boolean rc;
+    int i=0;
     char topic1[50], topic2[50];
     // Loop until we're reconnected
     while (!mqttClient.connected() && i<2) {
@@ -953,6 +955,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         mqttClient.loop();
         mqttClient.subscribe(topic2);
         mqttClient.loop();
+        rc=true;
       } 
       else 
       {
@@ -961,12 +964,14 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
         Serial.println(" try again in 2 seconds");
         sprintf(printstring, "MQTT connection failed. Retry in 2 seconds");
         logOut(2,printstring, msgMQTTError, msgWarn);
+        rc=false;
 
         // Wait 2 seconds before retrying
         delay(2000);
       }
       i++;
     } // while
+    return (rc);
   }
 
   /**************************************************!
@@ -1010,13 +1015,14 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   /**************************************************!
     @brief    MQTT send function
     @details  publishes the topic and payload it receives
-    @return   void
+    @return   boolean true: successful, otherwise false
   ***************************************************/
-  void mqttSend(char *topic, char* payload)
+  boolean mqttSend(char *topic, char* payload)
   {
     sprintf(printstring,"Strings to MQTT: [%s] [%s]\n", topic, payload);
     logOut(1, printstring, msgMQTTInfo, msgInfo);
-    mqttClient.publish(topic, payload);   
+    boolean rc = mqttClient.publish(topic, payload);   
+    return rc;
   }
 
   /**************************************************!
@@ -1032,6 +1038,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   {
     char payloadStr[100];
     char topicStr[150];
+    static int mqttConnectFails = 0;
 
     static long mqttSendItemCounter = 0, mqttCallCounter = 0;
     int i;
@@ -1050,16 +1057,23 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     int tst = mqttClient.connected();
     if (!tst)
     {
+      mqttConnectFails += 1;
       sprintf(printstring,"MQTT client not connected, return: %d State: %d\n",tst, mqttClient.state());
       logOut(2,printstring, msgMQTTConnect, msgWarn);
-      mqttReconnect();
+      if(mqttReconnect())
+         mqttConnectFails = 0;
     }  
     else{
+      mqttConnectFails = 0;
       sprintf(printstring,"MQTT client is still connected, return: %d\n",tst);
       logOut(2,printstring, msgMQTTConnect, msgWarn);
     }
     sprintf(printstring,"MQTT client after attempt to connect, State: %d\n", mqttClient.state());
     logOut(2,printstring, msgMQTTConnect, msgWarn);
+
+    // if too many connection failures to mqtt server: restart the ESP32
+    if(mqttConnectFails >= 100) 
+      ESP.restart();
     
     if (kgf.DataValid && mqttClient.connected()) 
     {
@@ -1178,6 +1192,7 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
   {
     char payloadStr[100];
     char topicStr[100];
+    static int mqttConnectFails = 0;
 
     static long mqttSendItemCounter = 0, mqttCallCounter = 0;
     int i;
@@ -1192,16 +1207,23 @@ bool connectToWiFi(char* ssid, char* pass, int noRetries)
     int tst = mqttClient.connected();
     if (!tst)
     {
+      mqttConnectFails += 1;
       sprintf(printstring,"MQTT client not connected, return: %d State: %d\n",tst, mqttClient.state());
       logOut(2,printstring, msgMQTTConnect, msgWarn);
-      mqttReconnect();
+      if(mqttReconnect())
+        mqttConnectFails = 0;
     }  
     else{
+      mqttConnectFails = 0;
       sprintf(printstring,"MQTT client is still connected, return: %d\n",tst);
       logOut(2,printstring, msgMQTTConnect, msgWarn);
     }
     sprintf(printstring,"MQTT client after attempt to connect, State: %d\n", mqttClient.state());
     logOut(2,printstring, msgMQTTConnect, msgWarn);
+
+    // if too many connection failures to mqtt server: restart the ESP32
+    if(mqttConnectFails >= 100) 
+      ESP.restart();
     
     if (kgf.DataValid && mqttClient.connected()) 
     {
@@ -2183,7 +2205,7 @@ void loop()
   char datestring[40];
   //Serial.print("L3 ");
 
-  esp_task_wdt_reset();   // keep watchdog happy
+  // esp_task_wdt_reset();   // keep watchdog happy
 
   kgf.DataValid = getKGF110Data(); // get data from battery monitor and store them in global variables
   sprintf(printstring,"return from getKGFData: %d", kgf.DataValid);
